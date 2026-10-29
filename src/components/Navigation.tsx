@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
+import type { SessionUser } from '../lib/supabase';
+import { signOut } from '../lib/useSupabaseUser';
 import type { AuthMode, SectionLink } from '../types';
 
 const LINKS: SectionLink[] = [
@@ -9,7 +11,15 @@ const LINKS: SectionLink[] = [
   { label: 'Ссылки', to: '/links' },
 ];
 
-export default function Navigation({ onAuthOpen }: { onAuthOpen: (mode: AuthMode) => void }) {
+export default function Navigation({
+  user,
+  ready,
+  onAuthOpen,
+}: {
+  user: SessionUser | null;
+  ready: boolean;
+  onAuthOpen: (mode: AuthMode) => void;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const location = useLocation();
@@ -89,12 +99,56 @@ export default function Navigation({ onAuthOpen }: { onAuthOpen: (mode: AuthMode
         </div>
 
         <div className="nav-actions-desktop" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button type="button" className="btn-ghost" style={{ padding: '7px 14px', fontSize: '0.8rem' }} onClick={() => onAuthOpen('login')}>
-            Вход
-          </button>
-          <button type="button" className="btn-primary" style={{ padding: '7px 14px', fontSize: '0.8rem' }} onClick={() => onAuthOpen('register')}>
-            Начать
-          </button>
+          {ready && user ? (
+            <>
+              <span
+                title={user.email}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 14px',
+                  borderRadius: 100,
+                  background: 'rgba(79, 158, 255, 0.1)',
+                  border: '1px solid rgba(79, 158, 255, 0.2)',
+                  color: 'var(--text)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  maxWidth: 220,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gradient-brand)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#fff', flexShrink: 0 }}
+                >
+                  {user.name.slice(0, 1).toUpperCase()}
+                </span>
+                {user.name}
+              </span>
+              <button
+                type="button"
+                className="btn-ghost"
+                aria-label="Выйти из аккаунта"
+                onClick={() => signOut()}
+                style={{ padding: '7px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <LogOut size={14} />
+                Выйти
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn-ghost" style={{ padding: '7px 14px', fontSize: '0.8rem' }} onClick={() => onAuthOpen('login')}>
+                Вход
+              </button>
+              <button type="button" className="btn-primary" style={{ padding: '7px 14px', fontSize: '0.8rem' }} onClick={() => onAuthOpen('register')}>
+                Начать
+              </button>
+            </>
+          )}
         </div>
 
         <button
@@ -146,22 +200,36 @@ export default function Navigation({ onAuthOpen }: { onAuthOpen: (mode: AuthMode
           </Link>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ flex: 1, padding: 10 }}
-            onClick={() => { onAuthOpen('login'); setOpen(false); }}
-          >
-            Вход
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            style={{ flex: 1, padding: 10 }}
-            onClick={() => { onAuthOpen('register'); setOpen(false); }}
-          >
-            Начать
-          </button>
+          {ready && user ? (
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ flex: 1, padding: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              onClick={() => { signOut(); setOpen(false); }}
+            >
+              <LogOut size={16} />
+              Выйти ({user.name})
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{ flex: 1, padding: 10 }}
+                onClick={() => { onAuthOpen('login'); setOpen(false); }}
+              >
+                Вход
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ flex: 1, padding: 10 }}
+                onClick={() => { onAuthOpen('register'); setOpen(false); }}
+              >
+                Начать
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

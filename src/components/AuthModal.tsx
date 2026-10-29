@@ -1,13 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Eye, EyeOff, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { AuthMode } from '../types';
 import { prefersReducedMotion } from '../lib/useReveal';
 
 interface AuthModalProps {
-  mode: 'login' | 'register';
+  mode: Exclude<AuthMode, null>;
   onSwitchMode: (mode: AuthMode) => void;
   onClose: () => void;
+}
+
+const KNOWN_ERRORS: Record<string, string> = {
+  'Invalid login credentials': 'Неверная почта или пароль.',
+  'User already registered': 'Пользователь с такой почтой уже зарегистрирован.',
+  'Email not confirmed': 'Сначала подтвердите почту — проверьте входящие письма.',
+  'Password should be at least 6 characters': 'Пароль должен быть не короче 6 символов.',
+  'To login, please visit your email to confirm your account':
+    'Подтвердите почту по письму, которое мы отправили при регистрации.',
+  'Email Signups are not allowed': 'Регистрация по email сейчас отключена.',
+  'Too many requests': 'Слишком много попыток. Попробуйте позже.',
+};
+
+function translateAuthError(message: string): string {
+  for (const [pattern, text] of Object.entries(KNOWN_ERRORS)) {
+    if (message.includes(pattern)) return text;
+  }
+  return `Не удалось выполнить запрос: ${message}`;
 }
 
 export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProps) {
@@ -16,6 +35,7 @@ export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProp
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const isLogin = mode === 'login';
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
@@ -27,6 +47,15 @@ export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProp
     firstFieldRef.current?.focus();
     return () => previouslyFocused.current?.focus();
   }, [mode]);
+
+  // Close on Escape.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
 
   // A simple focus trap: Tab cycles inside the modal.
   useEffect(() => {
@@ -55,19 +84,39 @@ export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProp
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [mode]);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
-    if (password.length < 6) {
-      setError('Пароль должен быть не короче 6 символов.');
-      return;
-    }
+    setInfo('');
     setSubmitting(true);
-    // Демо-режим: замена на реальный вызов API при подключении бэкенда.
-    window.setTimeout(() => {
+
+    try {
+      if (isLogin) {
+        const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+        if (authError) throw authError;
+        onClose(); // session is delivered via onAuthStateChange
+      } else {
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name } },
+        });
+        if (authError) throw authError;
+
+        if (data.session) {
+          onClose(); // email confirmation disabled — logged in right away
+        } else {
+          // Email confirmation enabled in Supabase.
+          setInfo('Готово! Мы отправили письмо для подтверждения на указанную почту. Нажмите ссылку в письме, затем войдите.');
+          setEmail('');
+          setPassword('');
+        }
+      }
+    } catch (err) {
+      setError(translateAuthError(err instanceof Error ? err.message : String(err)));
+    } finally {
       setSubmitting(false);
-      onClose();
-    }, 1200);
+    }
   };
 
   const switchMode = () => {
@@ -124,13 +173,27 @@ export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProp
         <h2 style={{ fontFamily: 'var(--font-head)', fontSize: '1.8rem', fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>
           {isLogin ? 'Вход' : 'Регистрация'}
         </h2>
-        <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: 32 }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: 24 }}>
           {isLogin ? 'Войдите в свой аккаунт Vlink' : 'Создайте бесплатный аккаунт'}
         </p>
 
         {error && (
-          <div role="alert" style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: 'var(--red)', fontSize: '0.85rem', marginBottom: 16 }}>
-            {error}
+          <div
+            role="alert"
+            style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 16px', borderRadius: 10, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: 'var(--red)', fontSize: '0.85rem', marginBottom: 16 }}
+          >
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {info && (
+          <div
+            role="status"
+            style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 16px', borderRadius: 10, background: 'rgba(29, 233, 182, 0.08)', border: '1px solid rgba(29, 233, 182, 0.25)', color: 'var(--teal)', fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5 }}
+          >
+            <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{info}</span>
           </div>
         )}
 
@@ -212,7 +275,7 @@ export default function AuthModal({ mode, onSwitchMode, onClose }: AuthModalProp
                 style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }}
               />
             )}
-            {isLogin ? 'Войти' : 'Создать аккаунт'}
+            {submitting ? (isLogin ? 'Входим…' : 'Регистрируем…') : isLogin ? 'Войти' : 'Создать аккаунт'}
           </button>
         </form>
 

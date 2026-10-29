@@ -5,6 +5,7 @@ import RainCanvas from './components/RainCanvas';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
+import { useSupabaseUser } from './lib/useSupabaseUser';
 import HomePage from './pages/HomePage';
 import ArticlesPage from './pages/ArticlesPage';
 import LinksPage from './pages/LinksPage';
@@ -18,6 +19,7 @@ export default function App() {
     () => sessionStorage.getItem(SESSION_BOOT_KEY) === '1',
   );
   const [authMode, setAuthMode] = useState<AuthMode>(null);
+  const { user, ready } = useSupabaseUser();
   const location = useLocation();
 
   const finishBoot = useCallback(() => {
@@ -27,6 +29,11 @@ export default function App() {
 
   const openAuth = useCallback((mode: AuthMode) => setAuthMode(mode), []);
   const closeAuth = useCallback(() => setAuthMode(null), []);
+
+  // Skip the auth dialog as soon as the user is logged in.
+  useEffect(() => {
+    if (user && authMode) setAuthMode(null);
+  }, [user, authMode]);
 
   // Scroll back to the top on every route change.
   useEffect(() => {
@@ -42,16 +49,6 @@ export default function App() {
           : 'Vlink — Все ваши ссылки в одном месте';
   }, [authMode]);
 
-  // Close auth dialog with Escape.
-  useEffect(() => {
-    if (!authMode) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setAuthMode(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [authMode]);
-
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -63,7 +60,7 @@ export default function App() {
       {booted && (
         <>
           <RainCanvas />
-          <Navigation onAuthOpen={openAuth} />
+          <Navigation user={user} ready={ready} onAuthOpen={openAuth} />
           <main
             id="main-content"
             style={{ position: 'relative', zIndex: 1, outline: 'none' }}
@@ -71,12 +68,12 @@ export default function App() {
             <Routes>
               <Route path="/" element={<HomePage onAuthOpen={openAuth} />} />
               <Route path="/articles" element={<ArticlesPage />} />
-              <Route path="/links" element={<LinksPage />} />
+              <Route path="/links" element={<LinksPage onAuthOpen={openAuth} />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
           <Footer />
-          {authMode && <AuthModal mode={authMode} onSwitchMode={setAuthMode} onClose={closeAuth} />}
+          {authMode && ready && <AuthModal mode={authMode} onSwitchMode={setAuthMode} onClose={closeAuth} />}
         </>
       )}
     </>

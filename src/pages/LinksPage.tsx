@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Search, Link2, ArrowRight } from 'lucide-react';
 import { useReveal } from '../lib/useReveal';
+import type { AuthMode } from '../types';
 
 const ALL_LINKS = [
   { title: 'GitHub', desc: 'Мои репозитории и open-source проекты', category: 'Dev', icon: '💻', url: 'https://github.com' },
@@ -19,7 +20,7 @@ const ALL_LINKS = [
 
 const CATEGORIES = ['All', 'Social', 'Dev', 'Design', 'Other'];
 
-export default function LinksPage() {
+export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode) => void }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [category, setCategory] = useState('All');
   const [query, setQuery] = useState('');
@@ -203,10 +204,10 @@ export default function LinksPage() {
               <p style={{ fontSize: '1rem', color: 'var(--muted)', marginBottom: 24 }}>
                 Создайте бесплатный аккаунт и начните добавлять ссылки.
               </p>
-              <a href="#" onClick={(e) => e.preventDefault()} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 28px', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <button type="button" onClick={() => onAuthOpen('register')} className="btn-primary" style={{ padding: '12px 28px', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 Создать страницу
                 <ArrowRight size={16} />
-              </a>
+              </button>
             </div>
           </div>
         </div>
