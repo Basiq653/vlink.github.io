@@ -1,18 +1,39 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import type { AuthMode } from '../types';
 import { useReveal, prefersReducedMotion } from '../lib/useReveal';
+import { supabase } from '../lib/supabase';
 
-const STATS = [
-  { num: '10K+', label: 'Пользователей' },
-  { num: '50K+', label: 'Ссылок' },
-  { num: '99.9%', label: 'Аптайм' },
-];
+function formatCount(n: number): string {
+  if (n >= 100000) return `${Math.round(n / 1000)}K+`;
+  return `${n}`;
+}
 
 export default function HeroSection({ onAuthOpen }: { onAuthOpen: (mode: AuthMode) => void }) {
   const ref = useRef<HTMLElement | null>(null);
   useReveal(ref, { selector: '.hero-animate', y: 28, stagger: 0.12 });
+
+  // живая статистика из Supabase
+  const [stats, setStats] = useState<{ users: string; links: string }>({ users: '…', links: '…' });
+
+  useEffect(() => {
+    let canceled = false;
+    const stat = async (table: string) => {
+      const { count, error } = await supabase.from(table).select('id', { count: 'exact' });
+      if (error || typeof count !== 'number') return null;
+      return count;
+    };
+    (async () => {
+      const [users, links] = await Promise.all([stat('profiles'), stat('link_cards')]);
+      if (canceled) return;
+      setStats({
+        users: users === null ? '10K+' : formatCount(users),
+        links: links === null ? '50K+' : formatCount(links),
+      });
+    })();
+    return () => { canceled = true; };
+  }, []);
 
   return (
     <section
@@ -127,7 +148,11 @@ export default function HeroSection({ onAuthOpen }: { onAuthOpen: (mode: AuthMod
           className="hero-animate"
           style={{ display: 'flex', gap: 40, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 40, borderTop: '1px solid var(--border)' }}
         >
-          {STATS.map((stat) => (
+          {[
+            { num: stats.users, label: 'Пользователей' },
+            { num: stats.links, label: 'Ссылок' },
+            { num: '99.9%', label: 'Аптайм' },
+          ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center', minWidth: 96 }}>
               <div
                 style={{

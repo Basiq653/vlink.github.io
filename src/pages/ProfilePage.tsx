@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ExternalLink, MapPin, Music4 } from 'lucide-react';
-import { fetchProfileByUsername, APPEARANCE_FALLBACK, type Profile } from '../lib/profiles';
+import { ExternalLink, MapPin, Music4, UserRound } from 'lucide-react';
+import { fetchProfileByUsername, fetchProfileById, APPEARANCE_FALLBACK, type Profile } from '../lib/profiles';
 import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
 import { useReveal } from '../lib/useReveal';
+import { supabase } from '../lib/supabase';
 import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
 import RainCanvas from '../components/RainCanvas';
 
@@ -15,6 +16,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [cards, setCards] = useState<LinkCard[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading');
+  // кто смотрит страницу (для бейджа справа сверху)
+  const [viewerName, setViewerName] = useState<string | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -36,6 +39,21 @@ export default function ProfilePage() {
     load();
     return () => { canceled = true; };
   }, [username]);
+
+  // бейдж посетителя: ник того, кто смотрит страницу
+  useEffect(() => {
+    let canceled = false;
+    supabase.auth.getUser().then(async ({ data }) => {
+      const id = data?.user?.id;
+      if (canceled || !id) return;
+      const p = await fetchProfileById(id);
+      if (canceled) return;
+      setViewerName(
+        p?.display_name || p?.username || data.user?.email?.split('@')[0] || null,
+      );
+    });
+    return () => { canceled = true; };
+  }, []);
 
   // фон страницы (подложка под overscroll) в цвет профиля
   useEffect(() => {
@@ -107,6 +125,11 @@ export default function ProfilePage() {
   };
   const displayName = profile.display_name || profile.username;
   const hasBg = !!ap.background_url;
+  const nameEffectClass =
+    ap.name_effect === 'rainbow' ? 'name-rainbow'
+    : ap.name_effect === 'glow' ? 'name-glow'
+    : ap.name_effect === 'glitch' ? 'name-glitch'
+    : '';
   // карточка контента: полупрозрачное стекло поверх фона
   const glassAlpha = hasBg ? Math.max(0.3, (100 - ap.bg_opacity + 40) / 155) : 0.6;
   const contentBg = `rgba(12, 17, 28, ${glassAlpha.toFixed(2)})`;
@@ -199,7 +222,19 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(1.6rem, 5vw, 2.3rem)', fontWeight: 800, lineHeight: 1.15, marginBottom: 6, color: ap.text_color }}>
+          <h1
+            data-name={displayName}
+            style={{
+              fontFamily: 'var(--font-head)',
+              fontSize: 'clamp(1.4rem, 4vw, 1.9rem)',
+              fontWeight: 700,
+              lineHeight: 1.2,
+              marginBottom: 6,
+              color: ap.text_color,
+              overflowWrap: 'break-word',
+            }}
+            className={nameEffectClass}
+          >
             {displayName}
           </h1>
           <p style={{ color: ap.accent_color, fontSize: '0.95rem', fontWeight: 500, marginBottom: ap.description ? 14 : 24 }}>
@@ -275,29 +310,45 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* фоновая музыка — над подписью */}
+          {/* фоновая музыка — над подписью, liquid glass */}
           {ap.audio_url && (
-            <div
-              style={{
-                marginTop: 24,
-                paddingTop: 18,
-                borderTop: `1px solid ${ap.accent_color}1f`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <Music4 size={15} color={ap.icons_color} style={{ flexShrink: 0 }} />
-              <audio
-                src={ap.audio_url}
-                controls
-                loop
-                style={{ height: 34, width: '100%', filter: 'saturate(1.4)' }}
-              />
+            <div className="audio-glass" style={{ marginTop: 24 }}>
+              <Music4 size={16} color={ap.icons_color} style={{ flexShrink: 0, position: 'relative', zIndex: 1 }} />
+              <audio src={ap.audio_url} controls loop />
             </div>
           )}
         </div>
       </div>
+
+      {/*Visitor badge — ник того, кто смотрит страницу */}
+      {viewerName && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            zIndex: 60,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '7px 14px',
+            borderRadius: 100,
+            background: 'rgba(12, 17, 28, 0.55)',
+            backdropFilter: 'blur(16px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(16px) saturate(1.6)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), 0 10px 26px rgba(0, 0, 0, 0.35)',
+            color: ap.text_color,
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+          title="Вы вошли как"
+        >
+          <UserRound size={13} color={ap.icons_color} style={{ position: 'relative', zIndex: 1 }} />
+          <span style={{ position: 'relative', zIndex: 1, opacity: 0.65 }}>Вы:</span>
+          <span style={{ position: 'relative', zIndex: 1, color: ap.accent_color }}>{viewerName}</span>
+        </div>
+      )}
 
       {/* footer band */}
       <div style={{ padding: '0 24px 100px' }}>

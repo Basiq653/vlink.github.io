@@ -480,10 +480,27 @@ export default function DashboardPage({
                 onChange={(e) => setAppearance((d) => ({ ...d, bg_effect: e.target.value }))}
                 style={inputStyle}
               >
-                <option value="none">Без эффекта</option>
+                <option value="none">Нет</option>
+                <option value="aurora">Aurora</option>
+                <option value="snow">Снежинки</option>
                 <option value="rain">Дождь</option>
-                <option value="snow">Снег</option>
+                <option value="night">Ночь</option>
                 <option value="stars">Звёзды</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ap-namefx" style={labelStyle}>Эффект ника</label>
+              <select
+                id="ap-namefx"
+                className="field-input"
+                value={appearance.name_effect}
+                onChange={(e) => setAppearance((d) => ({ ...d, name_effect: e.target.value }))}
+                style={inputStyle}
+              >
+                <option value="none">Нет</option>
+                <option value="rainbow">Радуга</option>
+                <option value="glow">Свечение</option>
+                <option value="glitch">Глитч</option>
               </select>
             </div>
             <div>

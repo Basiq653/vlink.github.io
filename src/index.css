@@ -292,6 +292,136 @@ button {
   40% { transform: scale(1); opacity: 1; }
 }
 
+/* ---------- effects of nickname ---------- */
+
+.name-rainbow {
+  background: linear-gradient(
+    90deg,
+    #ff5f6d, #ffc371, #47e891, #4f9eff, #b06ef7, #ff5f6d
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nameRainbowShift 5s linear infinite;
+}
+
+@keyframes nameRainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+.name-glow {
+  animation: nameGlowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes nameGlowPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 8px rgba(79, 158, 255, 0.55),
+      0 0 24px rgba(79, 158, 255, 0.35),
+      0 0 48px rgba(79, 158, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 14px rgba(79, 158, 255, 0.95),
+      0 0 42px rgba(79, 158, 255, 0.6),
+      0 0 80px rgba(79, 158, 255, 0.35);
+  }
+}
+
+.name-glitch {
+  position: relative;
+  animation: nameGlitchShift 2.4s infinite steps(1);
+}
+
+.name-glitch::before,
+.name-glitch::after {
+  content: attr(data-name);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.name-glitch::before {
+  color: #ff3d6e;
+  mix-blend-mode: screen;
+  animation: nameGlitchA 2.4s infinite steps(1);
+}
+
+.name-glitch::after {
+  color: #47e891;
+  mix-blend-mode: screen;
+  animation: nameGlitchB 2.4s infinite steps(1);
+}
+
+@keyframes nameGlitchShift {
+  0%, 88%, 100% { transform: translate(0, 0); }
+  90% { transform: translate(-2px, 1px) skewX(-2deg); }
+  92% { transform: translate(2px, -1px) skewX(2deg); }
+  94% { transform: translate(-1px, 0) skewX(-1deg); }
+  96% { transform: translate(1px, 1px) skewX(1deg); }
+}
+
+@keyframes nameGlitchA {
+  0%, 88%, 100% { opacity: 0; }
+  90% { opacity: 0.7; transform: translate(2px, 0); }
+  94% { opacity: 0.7; transform: translate(-2px, 0); }
+}
+
+@keyframes nameGlitchB {
+  0%, 88%, 100% { opacity: 0; }
+  92% { opacity: 0.7; transform: translate(-2px, 1px); }
+  96% { opacity: 0.7; transform: translate(2px, -1px); }
+}
+
+/* ---------- audio player - liquid glass  ---------- */
+
+.audio-glass {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 30px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+/* блуждающий световой блик */
+.audio-glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: audioSheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes audioSheen {
+  0% { left: -40%; }
+  60%, 100% { left: 110%; }
+}
+
+/* деликатная окраска системного аудио-контрола */
+.audio-glass audio {
+  height: 32px;
+  width: 100%;
+  border-radius: 10px;
+}
+
+
 /* ---------- hero aurora ---------- */
 
 .aurora {

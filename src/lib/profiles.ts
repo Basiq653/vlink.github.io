@@ -11,7 +11,7 @@ export interface Profile {
   background_url: string;
   audio_url: string;
   cursor_url: string;
-  bg_effect: string; // none | rain | snow | stars
+  bg_effect: string; // none | rain | snow | stars | aurora | night
   bg_opacity: number; // 10..100
   bg_blur: number; // 0..80
   location: string;
@@ -19,6 +19,7 @@ export interface Profile {
   text_color: string;
   bg_color: string;
   icons_color: string;
+  name_effect: string; // none | rainbow | glow | glitch
 }
 
 export type ProfileDraft = Pick<Profile, 'username' | 'display_name'>;
@@ -37,6 +38,7 @@ export type AppearanceDraft = {
   text_color: string;
   bg_color: string;
   icons_color: string;
+  name_effect: string;
 };
 
 export const APPEARANCE_FALLBACK: AppearanceDraft = {
@@ -53,6 +55,7 @@ export const APPEARANCE_FALLBACK: AppearanceDraft = {
   text_color: '#e9eef4',
   bg_color: '#080c14',
   icons_color: '#4f9eff',
+  name_effect: 'none',
 };
 
 const HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
@@ -77,6 +80,7 @@ export function appearanceFrom(profile: Profile | null): AppearanceDraft {
     text_color: colorOr(profile.text_color ?? '', APPEARANCE_FALLBACK.text_color),
     bg_color: colorOr(profile.bg_color ?? '', APPEARANCE_FALLBACK.bg_color),
     icons_color: colorOr(profile.icons_color ?? '', APPEARANCE_FALLBACK.icons_color),
+    name_effect: profile.name_effect ?? 'none',
   };
 }
 
@@ -136,7 +140,7 @@ export async function updateOwnAppearance(draft: AppearanceDraft): Promise<{ ok:
     background_url: draft.background_url,
     audio_url: draft.audio_url,
     cursor_url: draft.cursor_url,
-    bg_effect: ['none', 'rain', 'snow', 'stars'].includes(draft.bg_effect) ? draft.bg_effect : 'none',
+    bg_effect: ['none', 'rain', 'snow', 'stars', 'aurora', 'night'].includes(draft.bg_effect) ? draft.bg_effect : 'none',
     bg_opacity: Math.min(100, Math.max(10, Math.round(draft.bg_opacity))),
     bg_blur: Math.min(80, Math.max(0, Math.round(draft.bg_blur))),
     location: draft.location.slice(0, 48),
@@ -144,13 +148,14 @@ export async function updateOwnAppearance(draft: AppearanceDraft): Promise<{ ok:
     text_color: colorOr(draft.text_color, APPEARANCE_FALLBACK.text_color),
     bg_color: colorOr(draft.bg_color, APPEARANCE_FALLBACK.bg_color),
     icons_color: colorOr(draft.icons_color, APPEARANCE_FALLBACK.icons_color),
+    name_effect: ['none', 'rainbow', 'glow', 'glitch'].includes(draft.name_effect) ? draft.name_effect : 'none',
   };
 
   const { error } = await supabase.from('profiles').update(payload).eq('id', auth.user.id);
   if (error) {
     const missingColumn = error.message.includes('column') && error.message.includes('does not exist');
     if (missingColumn) {
-      return { ok: false, message: 'Новые колонки ещё не добавлены — запустите migration2-appearance.sql в SQL Editor.' };
+      return { ok: false, message: 'Новая колонка name_effect ещё не добавлена — запустите migration3-nameeffect.sql в SQL Editor.' };
     }
     return { ok: false, message: error.message };
   }

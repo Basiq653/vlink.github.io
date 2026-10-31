@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { prefersReducedMotion } from '../lib/useReveal';
 
-export type ProfileEffect = 'none' | 'rain' | 'snow' | 'stars';
+export type ProfileEffect = 'none' | 'rain' | 'snow' | 'stars' | 'aurora' | 'night';
 
 interface Snowflake {
   x: number;
@@ -20,6 +20,23 @@ interface Star {
   phase: number;
   speed: number;
   opacity: number;
+}
+
+interface Blob {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  hue: number;
+}
+
+function makeBlobs(w: number, h: number): Blob[] {
+  return [
+    { x: w * 0.2, y: h * 0.3, vx: 0.35, vy: -0.22, r: w * 0.3, hue: 215 },
+    { x: w * 0.75, y: h * 0.25, vx: -0.28, vy: 0.26, r: w * 0.26, hue: 275 },
+    { x: w * 0.5, y: h * 0.75, vx: 0.22, vy: 0.3, r: w * 0.28, hue: 165 },
+  ];
 }
 
 /**
@@ -48,6 +65,7 @@ export default function ProfileFX({ kind, color }: { kind: ProfileEffect; color?
     let running = true;
     let flakes: Snowflake[] = [];
     let stars: Star[] = [];
+    let blobs: Blob[] = [];
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -55,27 +73,32 @@ export default function ProfileFX({ kind, color }: { kind: ProfileEffect; color?
       canvas.height = window.innerHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
       if (kind === 'snow') {
         const count = Math.min(Math.round(window.innerWidth / 12), 90);
         flakes = Array.from({ length: count }, () => ({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
+          x: Math.random() * w,
+          y: Math.random() * h,
           r: 1.5 + Math.random() * 2.5,
           speed: 0.4 + Math.random() * 1.1,
           drift: 8 + Math.random() * 26,
           phase: Math.random() * Math.PI * 2,
           opacity: 0.35 + Math.random() * 0.5,
         }));
-      } else if (kind === 'stars') {
-        const count = Math.min(Math.round((window.innerWidth * window.innerHeight) / 12000), 140);
+      } else if (kind === 'stars' || kind === 'night') {
+        const count = Math.min(Math.round((w * h) / 12000), 160);
         stars = Array.from({ length: count }, () => ({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
+          x: Math.random() * w,
+          y: Math.random() * h,
           r: 0.6 + Math.random() * 1.3,
           phase: Math.random() * Math.PI * 2,
           speed: 0.4 + Math.random() * 1.2,
           opacity: 0.3 + Math.random() * 0.55,
         }));
+      } else if (kind === 'aurora') {
+        blobs = makeBlobs(w, h);
       }
     };
 
@@ -102,7 +125,7 @@ export default function ProfileFX({ kind, color }: { kind: ProfileEffect; color?
           ctx.fill();
         }
         ctx.globalAlpha = 1;
-      } else if (kind === 'stars') {
+      } else if (kind === 'stars' || kind === 'night') {
         for (const s of stars) {
           const twinkle = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
           ctx.globalAlpha = s.opacity * twinkle;
@@ -112,6 +135,35 @@ export default function ProfileFX({ kind, color }: { kind: ProfileEffect; color?
           ctx.fill();
         }
         ctx.globalAlpha = 1;
+
+        if (kind === 'night') {
+          // ночная тень: темнее сверху донизу
+          const grad = ctx.createLinearGradient(0, 0, 0, h);
+          grad.addColorStop(0, 'rgba(2, 4, 10, 0.55)');
+          grad.addColorStop(0.5, 'rgba(2, 4, 10, 0.25)');
+          grad.addColorStop(1, 'rgba(2, 4, 10, 0.55)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
+        }
+      } else if (kind === 'aurora') {
+        ctx.globalCompositeOperation = 'lighter';
+        for (const b of blobs) {
+          // блуждание по экрану с ограничением
+          b.x += b.vx;
+          b.y += b.vy;
+          if (b.x < b.r * 0.3 || b.x > w - b.r * 0.3) b.vx *= -1;
+          if (b.y < b.r * 0.2 || b.y > h - b.r * 0.4) b.vy *= -1;
+
+          const hue = b.hue + Math.sin(t * 0.3 + b.hue) * 18;
+          const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+          grad.addColorStop(0, `hsla(${hue}, 85%, 60%, 0.16)`);
+          grad.addColorStop(1, `hsla(${hue}, 85%, 60%, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
       }
 
       raf = requestAnimationFrame(frame);
