@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 
+const CONTACT_TG = { label: 'Telegram', href: 'https://t.me/ffazak0?direct', icon: <TelegramIcon /> };
+
 const SOCIALS = [
-  { label: 'GitHub', href: 'https://github.com', icon: <GitHubIcon /> },
-  { label: 'Twitter', href: 'https://x.com', icon: <TwitterIcon /> },
-  { label: 'Telegram', href: 'https://t.me', icon: <TelegramIcon /> },
+  CONTACT_TG,
+  { label: 'X (Twitter)', href: 'https://x.com', icon: <TwitterIcon /> },
+  { label: 'GitHub', href: 'https://github.com/Basiq653', icon: <GitHubIcon /> },
 ];
 
 function GitHubIcon() {
@@ -52,8 +54,10 @@ export default function Footer() {
           </div>
           <div>
             <div className="footer-title">Контакты</div>
-            <a href="mailto:hello@vlink.example" className="footer-link">hello@vlink.example</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="footer-link">GitHub</a>
+            <a href={CONTACT_TG.href} target="_blank" rel="noreferrer" className="footer-link" style={{ color: 'var(--blue)' }}>
+              Telegram — @ffazak0
+            </a>
+            <a href="https://github.com/Basiq653" target="_blank" rel="noreferrer" className="footer-link">GitHub</a>
           </div>
         </nav>
 

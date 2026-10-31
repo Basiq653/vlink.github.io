@@ -107,10 +107,9 @@ export default function ProfilePage() {
   };
   const displayName = profile.display_name || profile.username;
   const hasBg = !!ap.background_url;
-  // карточка контента: полупрозрачный тёмный фон поверх картинки
-  const contentBg = hasBg
-    ? `rgba(8, 12, 20, ${Math.max(0.25, ap.bg_opacity / 100)})`
-    : ap.bg_color;
+  // карточка контента: полупрозрачное стекло поверх фона
+  const glassAlpha = hasBg ? Math.max(0.3, (100 - ap.bg_opacity + 40) / 155) : 0.6;
+  const contentBg = `rgba(12, 17, 28, ${glassAlpha.toFixed(2)})`;
 
   return (
     <div ref={ref} style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
@@ -152,14 +151,14 @@ export default function ProfilePage() {
             maxWidth: 440,
             width: '100%',
             background: contentBg,
-            border: `1px solid ${ap.accent_color}33`,
+            backdropFilter: 'blur(26px) saturate(1.55)',
+            WebkitBackdropFilter: 'blur(26px) saturate(1.55)',
+            border: `1px solid ${ap.accent_color}30`,
             borderRadius: 28,
-            padding: '40px 36px 36px',
+            padding: '40px 36px 32px',
             textAlign: 'center',
-            backdropFilter: hasBg ? 'blur(8px)' : undefined,
-            WebkitBackdropFilter: hasBg ? 'blur(8px)' : undefined,
             color: ap.text_color,
-            boxShadow: `0 30px 80px rgba(0, 0, 0, 0.45)`,
+            boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 60px ${ap.accent_color}14`,
           }}
         >
           {/* аватар */}
@@ -275,37 +274,30 @@ export default function ProfilePage() {
               ))}
             </div>
           )}
+
+          {/* фоновая музыка — над подписью */}
+          {ap.audio_url && (
+            <div
+              style={{
+                marginTop: 24,
+                paddingTop: 18,
+                borderTop: `1px solid ${ap.accent_color}1f`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <Music4 size={15} color={ap.icons_color} style={{ flexShrink: 0 }} />
+              <audio
+                src={ap.audio_url}
+                controls
+                loop
+                style={{ height: 34, width: '100%', filter: 'saturate(1.4)' }}
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* аудио плеер */}
-      {ap.audio_url && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            background: 'rgba(8, 12, 20, 0.85)',
-            border: `1px solid ${ap.accent_color}44`,
-            borderRadius: 14,
-            padding: '10px 12px',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-          }}
-        >
-          <Music4 size={16} color={ap.icons_color} style={{ flexShrink: 0 }} />
-          <audio
-            src={ap.audio_url}
-            controls
-            loop
-            style={{ height: 34, maxWidth: 240 }}
-          />
-        </div>
-      )}
 
       {/* footer band */}
       <div style={{ padding: '0 24px 100px' }}>

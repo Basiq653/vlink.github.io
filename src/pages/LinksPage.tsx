@@ -1,24 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Link2, ArrowRight } from 'lucide-react';
+import {
+  Search, Link2, ArrowRight,
+  Github, Twitter, Instagram, Linkedin, Youtube, Send,
+  Dribbble, Palette, Music, Coffee, Globe, PenLine,
+  type LucideIcon,
+} from 'lucide-react';
 import { useReveal } from '../lib/useReveal';
 import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
 import { fetchProfileById } from '../lib/profiles';
 import type { AuthMode } from '../types';
 
-const ALL_LINKS = [
-  { title: 'GitHub', desc: 'Мои репозитории и open-source проекты', category: 'Dev', icon: '💻', url: 'https://github.com' },
-  { title: 'Twitter / X', desc: 'Мысли, обновления и общение', category: 'Social', icon: '🐦', url: 'https://x.com' },
-  { title: 'Instagram', desc: 'Фото, сторис и жизнь', category: 'Social', icon: '📸', url: 'https://instagram.com' },
-  { title: 'LinkedIn', desc: 'Профессиональный профиль', category: 'Social', icon: '💼', url: 'https://linkedin.com' },
-  { title: 'YouTube', desc: 'Видео, туториалы и стримы', category: 'Social', icon: '🎬', url: 'https://youtube.com' },
-  { title: 'Telegram', desc: 'Канал с новостями и обновлениями', category: 'Social', icon: '✈️', url: 'https://t.me' },
-  { title: 'Dribbble', desc: 'Дизайн-проекты и портфолио', category: 'Design', icon: '🎨', url: 'https://dribbble.com' },
-  { title: 'Behance', desc: 'Кейсы и креативные работы', category: 'Design', icon: '📐', url: 'https://behance.net' },
-  { title: 'Spotify', desc: 'Плейлисты и любимая музыка', category: 'Other', icon: '🎵', url: 'https://spotify.com' },
-  { title: 'Buy Me a Coffee', desc: 'Поддержать проект', category: 'Other', icon: '☕', url: 'https://buymeacoffee.com' },
-  { title: 'Portfolio', desc: 'Личный сайт с проектами', category: 'Dev', icon: '🌐', url: '#' },
-  { title: 'Blog', desc: 'Статьи о технологиях и дизайне', category: 'Dev', icon: '📝', url: '#' },
+type LinkEntry = { title: string; desc: string; category: string; icon: LucideIcon; color: string; url: string };
+
+const ALL_LINKS: LinkEntry[] = [
+  { title: 'GitHub', desc: 'Мои репозитории и open-source проекты', category: 'Dev', icon: Github, color: '#8b949e', url: 'https://github.com' },
+  { title: 'Twitter / X', desc: 'Мысли, обновления и общение', category: 'Social', icon: Twitter, color: '#9ca3af', url: 'https://x.com' },
+  { title: 'Instagram', desc: 'Фото, сторис и жизнь', category: 'Social', icon: Instagram, color: '#e1306c', url: 'https://instagram.com' },
+  { title: 'LinkedIn', desc: 'Профессиональный профиль', category: 'Social', icon: Linkedin, color: '#0a66c2', url: 'https://linkedin.com' },
+  { title: 'YouTube', desc: 'Видео, туториалы и стримы', category: 'Social', icon: Youtube, color: '#ff4444', url: 'https://youtube.com' },
+  { title: 'Telegram', desc: 'Канал с новостями и обновлениями', category: 'Social', icon: Send, color: '#2aabee', url: 'https://t.me' },
+  { title: 'Dribbble', desc: 'Дизайн-проекты и портфолио', category: 'Design', icon: Dribbble, color: '#ea4c89', url: 'https://dribbble.com' },
+  { title: 'Behance', desc: 'Кейсы и креативные работы', category: 'Design', icon: Palette, color: '#a274dc', url: 'https://behance.net' },
+  { title: 'Spotify', desc: 'Плейлисты и любимая музыка', category: 'Other', icon: Music, color: '#1db954', url: 'https://spotify.com' },
+  { title: 'Buy Me a Coffee', desc: 'Поддержать проект', category: 'Other', icon: Coffee, color: '#ffdd00', url: 'https://buymeacoffee.com' },
+  { title: 'Portfolio', desc: 'Личный сайт с проектами', category: 'Dev', icon: Globe, color: '#4f9eff', url: '#' },
+  { title: 'Blog', desc: 'Статьи о технологиях и дизайне', category: 'Dev', icon: PenLine, color: '#1de9b6', url: '#' },
 ];
 
 const CATEGORIES = ['All', 'Social', 'Dev', 'Design', 'Other'];
@@ -164,16 +171,16 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
                     width: 44,
                     height: 44,
                     borderRadius: 12,
-                    background: 'rgba(79, 158, 255, 0.1)',
-                    border: '1px solid rgba(79, 158, 255, 0.15)',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.09)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.4rem',
                     flexShrink: 0,
                   }}
                 >
-                  {link.icon}
+                  <link.icon size={20} color={link.color} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
@@ -265,8 +272,11 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div
             style={{
-              background: 'var(--card)',
-              border: '1px solid var(--border-hover)',
+              background: 'var(--glass)',
+              backdropFilter: 'blur(20px) saturate(1.6)',
+              WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'inset 0 1px 0 var(--glass-highlight), 0 18px 50px rgba(2, 6, 14, 0.4)',
               borderRadius: 24,
               padding: '48px 40px',
               textAlign: 'center',
