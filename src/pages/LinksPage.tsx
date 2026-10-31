@@ -1,6 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Link2, ArrowRight } from 'lucide-react';
 import { useReveal } from '../lib/useReveal';
+import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
+import { fetchProfileById } from '../lib/profiles';
 import type { AuthMode } from '../types';
 
 const ALL_LINKS = [
@@ -24,7 +27,34 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
   const ref = useRef<HTMLDivElement | null>(null);
   const [category, setCategory] = useState('All');
   const [query, setQuery] = useState('');
+  const [communityCards, setCommunityCards] = useState<Array<{ card: LinkCard; username: string }>>([]);
   useReveal(ref, { selector: '.links-animate', y: 24, stagger: 0.06 });
+
+  // последние 8 карточек пользователей → витрина сообщества
+  useEffect(() => {
+    let canceled = false;
+    const load = async () => {
+      const { cards, missingTable } = await fetchLinkCards();
+      if (canceled || missingTable || cards.length === 0) return;
+      const recent = cards.slice(-8).reverse() as LinkCard[];
+      const seen = new Set<string>();
+      const entries: Array<{ card: LinkCard; username: string }> = [];
+      await Promise.all(
+        recent.map(async (card) => {
+          if (seen.has(card.user_id)) return;
+          seen.add(card.user_id);
+          const profile = await fetchProfileById(card.user_id);
+          if (!canceled && profile) entries.push({ card, username: profile.username });
+        }),
+      );
+      if (!canceled) {
+        entries.sort((a, b) => (a.card.created_at < b.card.created_at ? 1 : -1));
+        setCommunityCards(entries);
+      }
+    };
+    load();
+    return () => { canceled = true; };
+  }, []);
 
   const filtered = ALL_LINKS.filter((link) => {
     const matchesCategory = category === 'All' || link.category === category;
@@ -174,6 +204,62 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
           )}
         </div>
       </div>
+
+      {/* витрина карточек сообщества */}
+      {communityCards.length > 0 && (
+        <div style={{ padding: '0 24px 64px' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+            <h2
+              className="links-animate"
+              style={{ fontFamily: 'var(--font-head)', fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', fontWeight: 800, marginBottom: 20 }}
+            >
+              Свежие карточки сообщества
+            </h2>
+            <div
+              className="links-grid"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}
+            >
+              {communityCards.map((entry) => (
+                <Link
+                  key={entry.card.id}
+                  to={`/u/${entry.username}`}
+                  className="links-animate glass-card"
+                  style={{ padding: 20, display: 'flex', alignItems: 'flex-start', gap: 14, textDecoration: 'none' }}
+                >
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: 'rgba(123, 94, 167, 0.12)',
+                      border: '1px solid rgba(123, 94, 167, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.4rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {entry.card.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+                      <h3 style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
+                        {entry.card.title}
+                      </h3>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--blue)', background: 'rgba(79, 158, 255, 0.1)', padding: '2px 8px', borderRadius: 100, fontWeight: 500, flexShrink: 0 }}>
+                        @{entry.username}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--muted)', lineHeight: 1.5 }}>{entry.card.description || 'Смотреть профиль'}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: '0 24px 100px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>

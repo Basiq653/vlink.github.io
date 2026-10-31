@@ -9,6 +9,8 @@ import { useSupabaseUser } from './lib/useSupabaseUser';
 import HomePage from './pages/HomePage';
 import ArticlesPage from './pages/ArticlesPage';
 import LinksPage from './pages/LinksPage';
+import DashboardPage from './pages/DashboardPage';
+import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import type { AuthMode } from './types';
 
@@ -69,6 +71,8 @@ export default function App() {
               <Route path="/" element={<HomePage onAuthOpen={openAuth} />} />
               <Route path="/articles" element={<ArticlesPage />} />
               <Route path="/links" element={<LinksPage onAuthOpen={openAuth} />} />
+              <Route path="/dashboard" element={<DashboardPage user={user} onAuthOpen={openAuth} />} />
+              <Route path="/u/:username" element={<ProfilePage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>

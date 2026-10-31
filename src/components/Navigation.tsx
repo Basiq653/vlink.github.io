@@ -11,6 +11,8 @@ const LINKS: SectionLink[] = [
   { label: 'Ссылки', to: '/links' },
 ];
 
+const DASHBOARD_LINK: SectionLink = { label: 'Мои ссылки', to: '/dashboard' };
+
 export default function Navigation({
   user,
   ready,
@@ -86,7 +88,7 @@ export default function Navigation({
         </Link>
 
         <div className="nav-links-desktop" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {LINKS.map((item) => (
+          {(user ? [...LINKS, DASHBOARD_LINK] : LINKS).map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -182,7 +184,7 @@ export default function Navigation({
           gap: 4,
         }}
       >
-        {LINKS.map((item) => (
+        {(user ? [...LINKS, DASHBOARD_LINK] : LINKS).map((item) => (
           <Link
             key={item.to}
             to={item.to}
