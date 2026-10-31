@@ -16,16 +16,19 @@ create table if not exists public.profiles (
 alter table public.profiles enable row level security;
 
 -- профиль публичный: любой видит имена и адреса страниц /u/<username>
+drop policy if exists "Anyone can read profiles" on public.profiles;
 create policy "Anyone can read profiles"
   on public.profiles
   for select
   using (true);
 
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile"
   on public.profiles
   for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles
   for update
@@ -100,23 +103,27 @@ create table if not exists public.link_cards (
 alter table public.link_cards enable row level security;
 
 -- читать каталог могут все (публичные страницы /u/<username> и раздел «Ссылки»)
+drop policy if exists "Anyone can read link cards" on public.link_cards;
 create policy "Anyone can read link cards"
   on public.link_cards
   for select
   using (true);
 
 -- создавать/редактировать/удалять можно только свои карточки
+drop policy if exists "Users can insert own cards" on public.link_cards;
 create policy "Users can insert own cards"
   on public.link_cards
   for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own cards" on public.link_cards;
 create policy "Users can update own cards"
   on public.link_cards
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can delete own cards" on public.link_cards;
 create policy "Users can delete own cards"
   on public.link_cards
   for delete
