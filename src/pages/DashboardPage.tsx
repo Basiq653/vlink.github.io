@@ -5,7 +5,8 @@ import { useReveal } from '../lib/useReveal';
 import { supabase } from '../lib/supabase';
 import type { SessionUser } from '../lib/supabase';
 import type { AuthMode } from '../types';
-import { fetchProfileById, updateOwnProfile, type Profile, type ProfileDraft } from '../lib/profiles';
+import { fetchProfileById, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
+import { uploadMedia, type MediaKind } from '../lib/storage';
 import {
   CARD_CATEGORIES,
   createLinkCard,
@@ -49,6 +50,10 @@ export default function DashboardPage({
   const [profileMessage, setProfileMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [userId, setUserId] = useState('');
+  const [appearance, setAppearance] = useState<AppearanceDraft>({ ...APPEARANCE_FALLBACK });
+  const [uploadingKind, setUploadingKind] = useState<MediaKind | null>(null);
+  const [appearanceMessage, setAppearanceMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savingAppearance, setSavingAppearance] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -83,6 +88,7 @@ export default function DashboardPage({
         username: p?.username ?? (data.user?.email?.split('@')[0] ?? ''),
         display_name: p?.display_name || user.name,
       });
+      setAppearance(appearanceFrom(p));
     });
     return () => { canceled = true; };
   }, [user]);
@@ -103,6 +109,38 @@ export default function DashboardPage({
     } else {
       setProfileMessage({ ok: false, text: result.message || 'Не удалось сохранить.' });
     }
+  };
+
+  const handleMediaUpload = async (kind: MediaKind, file: File) => {
+    setAppearanceMessage(null);
+    setUploadingKind(kind);
+    try {
+      const url = await uploadMedia(file, kind);
+      const field =
+        kind === 'background' ? 'background_url'
+        : kind === 'audio' ? 'audio_url'
+        : kind === 'avatar' ? 'avatar_url'
+        : 'cursor_url';
+      setAppearance((d) => ({ ...d, [field]: url }));
+      setAppearanceMessage({ ok: true, text: 'Файл загружен. Нажмите «Сохранить внешний вид».' });
+    } catch (err) {
+      setAppearanceMessage({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
+  const handleAppearanceSave = async (event: FormEvent) => {
+    event.preventDefault();
+    setAppearanceMessage(null);
+    setSavingAppearance(true);
+    const result = await updateOwnAppearance(appearance);
+    setSavingAppearance(false);
+    setAppearanceMessage(
+      result.ok
+        ? { ok: true, text: 'Внешний вид сохранён! Обновите публичную страницу, чтобы увидеть изменения.' }
+        : { ok: false, text: result.message || 'Не удалось сохранить.' },
+    );
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -303,6 +341,224 @@ export default function DashboardPage({
               <Save size={16} />
             )}
             {savingProfile ? 'Сохраняем…' : 'Сохранить профиль'}
+          </button>
+        </form>
+
+        {/* Внешний вид (guns.lol style) */}
+        <form
+          className="dash-animate glass-card"
+          onSubmit={handleAppearanceSave}
+          style={{ padding: 24, marginBottom: 40 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ fontFamily: 'var(--font-head)', fontSize: '1.1rem', fontWeight: 700 }}>Внешний вид страницы</h2>
+            {profile && (
+              <a
+                href={`#/u/${profile.username}`}
+                className="btn-ghost"
+                target="_blank"
+                rel="noreferrer"
+                style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              >
+                <ExternalLink size={14} />
+                Предпросмотр
+              </a>
+            )}
+          </div>
+
+          {appearanceMessage && (
+            <div
+              role={appearanceMessage.ok ? 'status' : 'alert'}
+              style={{
+                padding: '12px 16px',
+                borderRadius: 10,
+                background: appearanceMessage.ok ? 'rgba(29, 233, 182, 0.08)' : 'rgba(239, 68, 68, 0.1)',
+                border: `1px solid ${appearanceMessage.ok ? 'rgba(29, 233, 182, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                color: appearanceMessage.ok ? 'var(--teal)' : 'var(--red)',
+                fontSize: '0.85rem',
+                marginBottom: 16,
+                lineHeight: 1.6,
+              }}
+            >
+              {appearanceMessage.text}
+            </div>
+          )}
+
+          {/* медиа-плитки */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
+            {([
+              { kind: 'background', label: 'Фон', hint: 'Изображение', accept: 'image/*', urlKey: 'background_url', preview: true },
+              { kind: 'audio', label: 'Аудио', hint: 'MP3 / OGG', accept: 'audio/*', urlKey: 'audio_url', preview: false },
+              { kind: 'avatar', label: 'Аватар профиля', hint: 'Изображение', accept: 'image/*', urlKey: 'avatar_url', preview: true },
+              { kind: 'cursor', label: 'Курсор', hint: 'PNG / CUR', accept: 'image/*,.cur', urlKey: 'cursor_url', preview: false },
+            ] as const).map((tile) => (
+              <div key={tile.kind} style={{ border: '1px solid var(--border-hover)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{tile.label}</span>
+                {appearance[tile.urlKey] && tile.preview ? (
+                  <img src={appearance[tile.urlKey]} alt="" style={{ width: '100%', height: 72, objectFit: 'cover', borderRadius: 10 }} />
+                ) : (
+                  <label
+                    style={{
+                      minHeight: 72,
+                      borderRadius: 10,
+                      background: 'rgba(79, 158, 255, 0.05)',
+                      border: '1px dashed rgba(79, 158, 255, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      fontSize: '0.78rem',
+                      color: 'var(--muted)',
+                      cursor: 'pointer',
+                      padding: 8,
+                    }}
+                  >
+                    {uploadingKind === tile.kind ? 'Загрузка…' : appearance[tile.urlKey] ? 'Заменить файл' : `Нажмите, чтобы загрузить (${tile.hint})`}
+                    <input
+                      type="file"
+                      accept={tile.accept}
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleMediaUpload(tile.kind, file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+                {appearance[tile.urlKey] && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="file"
+                      accept={tile.accept}
+                      id={`replace-${tile.kind}`}
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleMediaUpload(tile.kind, file);
+                        e.target.value = '';
+                      }}
+                    />
+                    <label htmlFor={`replace-${tile.kind}`} className="btn-ghost" style={{ padding: '5px 10px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                      Заменить
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => setAppearance((d) => ({ ...d, [tile.urlKey]: '' }))}
+                      style={{ padding: '5px 10px', fontSize: '0.72rem', color: 'var(--red)' }}
+                    >
+                      Убрать
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* общие настройки */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
+            <div>
+              <label htmlFor="ap-desc" style={labelStyle}>Описание</label>
+              <input
+                id="ap-desc"
+                className="field-input"
+                type="text"
+                value={appearance.description}
+                onChange={(e) => setAppearance((d) => ({ ...d, description: e.target.value }))}
+                placeholder="это мое описание"
+                maxLength={160}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label htmlFor="ap-effect" style={labelStyle}>Эффекты фона</label>
+              <select
+                id="ap-effect"
+                className="field-input"
+                value={appearance.bg_effect}
+                onChange={(e) => setAppearance((d) => ({ ...d, bg_effect: e.target.value }))}
+                style={inputStyle}
+              >
+                <option value="none">Без эффекта</option>
+                <option value="rain">Дождь</option>
+                <option value="snow">Снег</option>
+                <option value="stars">Звёзды</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ap-location" style={labelStyle}>Местоположение</label>
+              <input
+                id="ap-location"
+                className="field-input"
+                type="text"
+                value={appearance.location}
+                onChange={(e) => setAppearance((d) => ({ ...d, location: e.target.value }))}
+                placeholder="Canada"
+                maxLength={48}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label htmlFor="ap-opacity" style={labelStyle}>Прозрачность профиля — {appearance.bg_opacity}%</label>
+              <input
+                id="ap-opacity"
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={appearance.bg_opacity}
+                onChange={(e) => setAppearance((d) => ({ ...d, bg_opacity: Number(e.target.value) }))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label htmlFor="ap-blur" style={labelStyle}>Размытие фона — {appearance.bg_blur}px</label>
+              <input
+                id="ap-blur"
+                type="range"
+                min={0}
+                max={80}
+                step={4}
+                value={appearance.bg_blur}
+                onChange={(e) => setAppearance((d) => ({ ...d, bg_blur: Number(e.target.value) }))}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          {/* цвета */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 8 }}>
+            {([
+              { key: 'accent_color', label: 'Акцентный цвет' },
+              { key: 'text_color', label: 'Цвет текста' },
+              { key: 'bg_color', label: 'Цвет фона' },
+              { key: 'icons_color', label: 'Цвет иконок' },
+            ] as const).map((row) => (
+              <div key={row.key} style={{ border: '1px solid var(--border-hover)', borderRadius: 12, padding: '10px 12px' }}>
+                <label htmlFor={`color-${row.key}`} style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: 6 }}>{row.label}</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    id={`color-${row.key}`}
+                    type="color"
+                    value={appearance[row.key]}
+                    onChange={(e) => setAppearance((d) => ({ ...d, [row.key]: e.target.value }))}
+                    aria-label={row.label}
+                    style={{ width: 34, height: 30, padding: 0, border: 'none', background: 'none', borderRadius: 8, cursor: 'pointer' }}
+                  />
+                  <code style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{appearance[row.key]}</code>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button type="submit" className="btn-primary" disabled={savingAppearance} style={{ padding: '11px 24px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {savingAppearance ? (
+              <span aria-hidden="true" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+            ) : (
+              <Save size={16} />
+            )}
+            {savingAppearance ? 'Сохраняем…' : 'Сохранить внешний вид'}
           </button>
         </form>
 
