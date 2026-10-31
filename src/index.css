@@ -29,14 +29,25 @@ html {
 
 body {
   background:
-    radial-gradient(1000px 600px at 85% -100px, rgba(79, 158, 255, 0.08), transparent 60%),
-    radial-gradient(900px 520px at 0% 100%, rgba(123, 94, 167, 0.07), transparent 60%),
+    radial-gradient(1100px 640px at 85% -120px, rgba(79, 158, 255, 0.1), transparent 62%),
+    radial-gradient(900px 560px at -10% 30%, rgba(123, 94, 167, 0.08), transparent 60%),
+    radial-gradient(1000px 600px at 50% 120%, rgba(29, 233, 182, 0.04), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+/* лёгкое виньетирование, чтобы контент «лежал» глубже */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(2, 5, 10, 0.5) 100%);
 }
 
 #root {
@@ -109,29 +120,39 @@ button {
 .btn-primary {
   background: var(--gradient-brand);
   color: #fff;
-  box-shadow: 0 4px 20px rgba(79, 158, 255, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 4px 20px rgba(79, 158, 255, 0.28);
   padding: 10px 22px;
   border-radius: 11px;
   font-size: 0.9rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
   border: none;
+  position: relative;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(79, 158, 255, 0.4);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 10px 34px rgba(79, 158, 255, 0.45),
+    0 0 0 1px rgba(123, 94, 167, 0.35);
 }
 
 .btn-primary:active {
   transform: translateY(0);
+  filter: brightness(0.98);
 }
 
 .btn-primary:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
+  filter: none;
 }
 
 .btn-ghost {
@@ -148,8 +169,10 @@ button {
 
 .btn-ghost:hover {
   color: var(--text);
-  border-color: var(--border-hover);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(79, 158, 255, 0.35);
+  background: rgba(79, 158, 255, 0.07);
+  box-shadow: 0 0 0 3px rgba(79, 158, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .section-tag {
@@ -158,27 +181,50 @@ button {
   gap: 6px;
   padding: 5px 14px;
   border-radius: 100px;
-  background: rgba(79, 158, 255, 0.08);
-  border: 1px solid rgba(79, 158, 255, 0.15);
+  background: linear-gradient(180deg, rgba(79, 158, 255, 0.1), rgba(79, 158, 255, 0.05));
+  border: 1px solid rgba(79, 158, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   font-size: 0.78rem;
   color: var(--blue);
   margin-bottom: 20px;
   font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
 .glass-card {
-  background: var(--card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 42%),
+    var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
+/* верхний блик на карточках */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 42%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
 .glass-card:hover {
-  border-color: var(--border-hover);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(2, 6, 14, 0.45);
+  border-color: rgba(79, 158, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow:
+    0 16px 40px rgba(2, 6, 14, 0.5),
+    0 0 0 3px rgba(79, 158, 255, 0.08),
+    0 0 24px rgba(79, 158, 255, 0.1);
 }
 
 .orb {
@@ -277,6 +323,7 @@ button {
   font-family: var(--font-body);
   font-size: 0.9rem;
   outline: none;
+  box-shadow: inset 0 2px 6px rgba(2, 6, 14, 0.25);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 

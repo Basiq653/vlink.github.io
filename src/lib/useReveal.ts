@@ -1,8 +1,4 @@
 import { useEffect, type RefObject } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
 
 export const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -17,10 +13,11 @@ interface RevealOptions {
 }
 
 /**
- * Reveals elements with a staggered fade-up as they scroll into view.
- * Triggers are attached inside a gsap.matchMedia context so they have
- * proper ownership and are cleaned up without killing animation
- * registrations belonging to other components.
+ * Плавное появление элементов при попадании во вьюпорт.
+ * IntersectionObserver + CSS transition (без GSAP):
+ * - элементы, уже во вьюпорте, показываются сразу каскадом;
+ * - страховочный таймер в 3.5 с показывает всё, даже если
+ *   наблюдатель по какой-то причине не сработал.
  */
 export function useReveal(
   containerRef: RefObject<HTMLElement | null>,
@@ -28,28 +25,62 @@ export function useReveal(
 ) {
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || prefersReducedMotion()) return;
+    if (!container) return;
+    const elements = Array.from(container.querySelectorAll<HTMLElement>(options.selector));
+    if (elements.length === 0) return;
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        container.querySelectorAll(options.selector),
-        { opacity: 0, y: options.y ?? 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: options.duration ?? 0.6,
-          stagger: options.stagger ?? 0.08,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: options.triggerSelector
-              ? container.querySelector(options.triggerSelector)
-              : container,
-            start: options.start ?? 'top 80%',
-          },
-        },
-      );
-    }, container);
+    if (prefersReducedMotion()) return; // ничего не прячем
 
-    return () => ctx.revert();
-  }, [containerRef.current, options.selector, options.triggerSelector]);
+    const y = options.y ?? 24;
+    const duration = options.duration ?? 0.55;
+    const stagger = (options.stagger ?? 0.08) * 1000;
+    const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+    elements.forEach((el) => {
+      el.style.opacity = '0';
+      el.style.transform = `translateY(${y}px)`;
+    });
+
+    const reveal = (el: HTMLElement, delay: number) => {
+      el.style.transition = `opacity ${duration}s ${easing} ${delay}ms, transform ${duration}s ${easing} ${delay}ms`;
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    };
+
+    let batchCount = 0;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => entry.target as HTMLElement)
+          .sort((a, b) => elements.indexOf(a) - elements.indexOf(b));
+
+        visible.forEach((el, i) => {
+          reveal(el, i * stagger);
+          io.unobserve(el);
+        });
+        batchCount += 1;
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+    );
+
+    elements.forEach((el) => io.observe(el));
+
+    // страховка: если наблюдатель не отработал — показать всё
+    const fallback = window.setTimeout(() => {
+      elements.forEach((el, i) => reveal(el, Math.min(i * 40, 400)));
+      io.disconnect();
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(fallback);
+      io.disconnect();
+      elements.forEach((el) => {
+        el.style.opacity = '';
+        el.style.transform = '';
+        el.style.transition = '';
+        el.style.transitionDelay = '';
+      });
+    };
+  }, [containerRef.current, options.selector]);
 }

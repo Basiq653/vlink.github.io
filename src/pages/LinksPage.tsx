@@ -69,7 +69,7 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
   return (
     <div ref={ref} style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
       <div
-        style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '130px 24px 60px' }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '140px 24px 28px' }}
       >
         <div style={{ maxWidth: 600 }}>
           <div className="links-animate">
