@@ -122,6 +122,7 @@ export default function ProfilePage() {
     text_color: profile.text_color || APPEARANCE_FALLBACK.text_color,
     bg_color: profile.bg_color || APPEARANCE_FALLBACK.bg_color,
     icons_color: profile.icons_color || APPEARANCE_FALLBACK.icons_color,
+    name_effect: profile.name_effect || 'none',
   };
   const displayName = profile.display_name || profile.username;
   const hasBg = !!ap.background_url;
