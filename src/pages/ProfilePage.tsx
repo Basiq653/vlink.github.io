@@ -31,10 +31,19 @@ export default function ProfilePage() {
       setProfile(found);
       setCards(all.filter((card) => card.user_id === found.id));
       setState('ready');
+      document.title = `${found.display_name || found.username} (@${found.username}) — Vlink`;
     };
     load();
     return () => { canceled = true; };
   }, [username]);
+
+  // фон страницы (подложка под overscroll) в цвет профиля
+  useEffect(() => {
+    if (!profile) return;
+    const prev = document.body.style.background;
+    document.body.style.background = profile.bg_color || '#080c14';
+    return () => { document.body.style.background = prev; };
+  }, [profile?.bg_color]);
 
   // пользовательский курсор
   useEffect(() => {

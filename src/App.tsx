@@ -51,18 +51,20 @@ export default function App() {
           : 'Vlink — Все ваши ссылки в одном месте';
   }, [authMode]);
 
+  const isProfileRoute = /^\/u\/[^/]+$/.test(location.pathname);
+
   return (
     <>
       <a className="skip-link" href="#main-content">
         Перейти к содержимому
       </a>
 
-      {!booted && <BootScreen onComplete={finishBoot} />}
+      {!booted && !isProfileRoute && <BootScreen onComplete={finishBoot} />}
 
-      {booted && (
+      {(booted || isProfileRoute) && (
         <>
-          <RainCanvas />
-          <Navigation user={user} ready={ready} onAuthOpen={openAuth} />
+          {!isProfileRoute && <RainCanvas />}
+          {!isProfileRoute && <Navigation user={user} ready={ready} onAuthOpen={openAuth} />}
           <main
             id="main-content"
             style={{ position: 'relative', zIndex: 1, outline: 'none' }}
@@ -76,7 +78,7 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
-          <Footer />
+          {!isProfileRoute && <Footer />}
           {authMode && ready && <AuthModal mode={authMode} onSwitchMode={setAuthMode} onClose={closeAuth} />}
         </>
       )}
