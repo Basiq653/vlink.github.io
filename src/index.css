@@ -375,15 +375,15 @@ button {
   96% { opacity: 0.7; transform: translate(2px, -1px); }
 }
 
-/* ---------- audio player - liquid glass  ---------- */
+/* ---------- audio player - liquid glass ---------- */
 
 .audio-glass {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px) saturate(1.6);
   -webkit-backdrop-filter: blur(16px) saturate(1.6);
@@ -404,7 +404,7 @@ button {
   left: -40%;
   width: 30%;
   height: 100%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.09), transparent);
   animation: audioSheen 4.5s ease-in-out infinite;
   pointer-events: none;
 }
@@ -414,11 +414,92 @@ button {
   60%, 100% { left: 110%; }
 }
 
-/* деликатная окраска системного аудио-контрола */
+/* круглая стеклянная play-кнопка */
+.audio-glass .audio-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.audio-glass .audio-play:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.06);
+}
+
+.audio-glass .audio-play:active {
+  transform: scale(0.95);
+}
+
+/* эквалайзер: 4 полоски прыгают, пока играет */
+.audio-glass .eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.audio-glass .eq i {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  height: 6px;
+  animation: eqBounce 1.1s ease-in-out infinite;
+}
+
+.audio-glass .eq i:nth-child(1) { animation-delay: 0s; }
+.audio-glass .eq i:nth-child(2) { animation-delay: 0.25s; }
+.audio-glass .eq i:nth-child(3) { animation-delay: 0.45s; }
+.audio-glass .eq i:nth-child(4) { animation-delay: 0.65s; }
+
+.audio-glass.paused .eq i {
+  animation-play-state: paused;
+  height: 5px;
+  opacity: 0.55;
+}
+
+@keyframes eqBounce {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+/* полоса прогресса */
+.audio-glass .audio-progress {
+  flex: 1;
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.audio-glass .audio-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), #fff);
+  transition: width 0.2s linear;
+}
+
+/* скрыть нативный контрол: звук управляется кнопкой */
 .audio-glass audio {
-  height: 32px;
-  width: 100%;
-  border-radius: 10px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 
@@ -518,6 +599,92 @@ select.field-input option:checked,
 select.field-input option:hover {
   background-color: #14243c;
   color: #8fc4ff;
+}
+
+/* --- живые плитки выбора эффектов (дашборд) --- */
+
+.fx-tile {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  padding: 0 !important;
+  font-family: inherit;
+  color: inherit;
+}
+
+.fx-tile:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.fx-tile.active {
+  border-color: var(--blue);
+  background: rgba(79, 158, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 158, 255, 0.14), 0 6px 18px rgba(79, 158, 255, 0.12);
+}
+
+.fx-canvas-wrap,
+.fx-name-wrap {
+  position: relative;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 11px 11px 0 0;
+  background:
+    radial-gradient(120% 100% at 20% 0%, rgba(79, 158, 255, 0.14), transparent 60%),
+    linear-gradient(160deg, #0b1220, #101a2e);
+}
+
+.fx-canvas-wrap canvas {
+  display: block;
+}
+
+.fx-none-icon {
+  font-size: 1.4rem;
+  color: rgba(233, 238, 244, 0.4);
+}
+
+.fx-label {
+  display: block;
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.fx-tile.active .fx-label {
+  color: #8fc4ff;
+}
+
+/* превью ника внутри плитки */
+.fx-name-wrap .name-preview {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #eef2f8;
+}
+
+.fx-name-wrap .name-preview.name-rainbow {
+  font-size: 0.95rem;
+}
+
+/* статус занятости адреса страницы */
+.username-status {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.username-status.ok {
+  color: #47e891;
+}
+
+.username-status.bad {
+  color: #ff6b83;
 }
 
 /* ---------- tag chips (hover via CSS, no JS state) ---------- */

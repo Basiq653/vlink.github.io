@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ExternalLink, MapPin, Music4, UserRound } from 'lucide-react';
+import { ExternalLink, MapPin, Pause, Play, UserRound } from 'lucide-react';
 import { fetchProfileByUsername, fetchProfileById, APPEARANCE_FALLBACK, type Profile } from '../lib/profiles';
 import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
 import { useReveal } from '../lib/useReveal';
 import { supabase } from '../lib/supabase';
 import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
-import RainCanvas from '../components/RainCanvas';
 
 export default function ProfilePage() {
   const { username = '' } = useParams();
@@ -18,6 +17,17 @@ export default function ProfilePage() {
   const [state, setState] = useState<'loading' | 'ready' | 'notfound'>('loading');
   // кто смотрит страницу (для бейджа справа сверху)
   const [viewerName, setViewerName] = useState<string | null>(null);
+  // кастомный плеер
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState('0%');
+
+  const handleAudioTime = () => {
+    const el = audioRef.current;
+    if (el && el.duration && !Number.isNaN(el.duration)) {
+      setAudioProgress(`${(el.currentTime / el.duration) * 100}%`);
+    }
+  };
 
   useEffect(() => {
     let canceled = false;
@@ -155,9 +165,7 @@ export default function ProfilePage() {
       )}
 
       {/* эффекты */}
-      {ap.bg_effect === 'rain'
-        ? <RainCanvas />
-        : <ProfileFX kind={ap.bg_effect} color={ap.accent_color} />}
+      <ProfileFX kind={ap.bg_effect} color={ap.accent_color} />
 
       {/* hero + карточки */}
       <div
@@ -313,9 +321,49 @@ export default function ProfilePage() {
 
           {/* фоновая музыка — над подписью, liquid glass */}
           {ap.audio_url && (
-            <div className="audio-glass" style={{ marginTop: 24 }}>
-              <Music4 size={16} color={ap.icons_color} style={{ flexShrink: 0, position: 'relative', zIndex: 1 }} />
-              <audio src={ap.audio_url} controls loop />
+            <div
+              className={`audio-glass${audioPlaying ? '' : ' paused'}`}
+              style={{ marginTop: 24 }}
+            >
+              <audio
+                ref={audioRef}
+                src={ap.audio_url}
+                loop
+                preload="none"
+                onPlay={() => setAudioPlaying(true)}
+                onPause={() => setAudioPlaying(false)}
+                onTimeUpdate={handleAudioTime}
+              />
+              <button
+                type="button"
+                className="audio-play"
+                aria-label={audioPlaying ? 'Остановить музыку' : 'Включить музыку'}
+                onClick={() => {
+                  const el = audioRef.current;
+                  if (!el) return;
+                  if (el.paused) void el.play();
+                  else el.pause();
+                }}
+                style={{ position: 'relative', zIndex: 1 }}
+              >
+                {audioPlaying ? <Pause size={15} /> : <Play size={15} />}
+              </button>
+              <span className="eq" aria-hidden="true" style={{ position: 'relative', zIndex: 1 }}>
+                <i /><i /><i /><i />
+              </span>
+              <span
+                className="audio-progress"
+                style={{ position: 'relative', zIndex: 1 }}
+                onClick={(e) => {
+                  const el = audioRef.current;
+                  if (!el || !el.duration || Number.isNaN(el.duration)) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+                  el.currentTime = ratio * el.duration;
+                }}
+              >
+                <span className="audio-progress-fill" style={{ width: audioProgress }} />
+              </span>
             </div>
           )}
         </div>

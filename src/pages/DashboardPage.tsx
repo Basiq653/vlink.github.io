@@ -5,8 +5,9 @@ import { useReveal } from '../lib/useReveal';
 import { supabase } from '../lib/supabase';
 import type { SessionUser } from '../lib/supabase';
 import type { AuthMode } from '../types';
-import { fetchProfileById, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
+import { fetchProfileById, fetchProfileByUsername, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
 import { uploadMedia, type MediaKind } from '../lib/storage';
+import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
 import {
   CARD_CATEGORIES,
   createLinkCard,
@@ -18,6 +19,22 @@ import {
 } from '../lib/linkCards';
 
 const EMPTY_DRAFT: LinkCardDraft = { title: '', description: '', category: 'Social', icon: '🔗', url: '' };
+
+const BG_PRESETS: Array<{ value: string; label: string }> = [
+  { value: 'none', label: 'Нет' },
+  { value: 'aurora', label: 'Aurora' },
+  { value: 'rain', label: 'Дождь' },
+  { value: 'snow', label: 'Снежинки' },
+  { value: 'night', label: 'Ночь' },
+  { value: 'stars', label: 'Звёзды' },
+];
+
+const NAME_PRESETS: Array<{ value: string; label: string; cls: string }> = [
+  { value: 'none', label: 'Нет', cls: '' },
+  { value: 'rainbow', label: 'Радуга', cls: 'name-rainbow' },
+  { value: 'glow', label: 'Свечение', cls: 'name-glow' },
+  { value: 'glitch', label: 'Глитч', cls: 'name-glitch' },
+];
 
 const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: 8, color: 'var(--text)' } as const;
 const inputStyle = { padding: '10px 14px', fontSize: '0.9rem' } as const;
@@ -47,9 +64,35 @@ export default function DashboardPage({
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>({ username: '', display_name: '' });
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'own' | 'taken' | 'free'>('idle');
+  const [userId, setUserId] = useState('');
   const [profileMessage, setProfileMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [userId, setUserId] = useState('');
+  // проверка занятости адреса страницы
+  const usernameAvail =
+    profileDraft.username.trim().length === 0 ? 'idle'
+    : !/^[a-zA-Z0-9_-]{3,24}$/.test(profileDraft.username.trim().toLowerCase()) ? 'invalid'
+    : usernameStatus;
+
+  useEffect(() => {
+    const raw = profileDraft.username.trim().toLowerCase();
+    if (!raw || !/^[a-zA-Z0-9_-]{3,24}$/.test(raw)) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (raw === profile?.username) {
+      setUsernameStatus('own');
+      return;
+    }
+    let canceled = false;
+    setUsernameStatus('checking');
+    const timer = window.setTimeout(async () => {
+      const found = await fetchProfileByUsername(raw);
+      if (canceled) return;
+      setUsernameStatus(found ? (found.id === userId ? 'own' : 'taken') : 'free');
+    }, 450);
+    return () => { canceled = true; window.clearTimeout(timer); };
+  }, [profileDraft.username, profile?.username, userId]);
   const [appearance, setAppearance] = useState<AppearanceDraft>({ ...APPEARANCE_FALLBACK });
   const [uploadingKind, setUploadingKind] = useState<MediaKind | null>(null);
   const [appearanceMessage, setAppearanceMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -332,6 +375,19 @@ export default function DashboardPage({
             <p style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--muted)' }}>
               Латиница, цифры, дефис и подчёркивание. Страница: <span style={{ color: 'var(--blue)' }}>#/u/{profileDraft.username || 'ivan'}</span>
             </p>
+            {usernameAvail !== 'idle' && (
+              <p
+                role="status"
+                className={`username-status${usernameAvail === 'free' || usernameAvail === 'own' ? ' ok' : usernameAvail === 'checking' ? '' : ' bad'}`}
+                style={{ marginTop: 6 }}
+              >
+                {usernameAvail === 'checking' && 'Проверяем адрес…'}
+                {usernameAvail === 'free' && '✓ Адрес свободен — можно занять'}
+                {usernameAvail === 'own' && '✓ Это ваш адрес'}
+                {usernameAvail === 'taken' && '✕ Адрес уже занят — ник можно занять только один раз'}
+                {usernameAvail === 'invalid' && '✕ Неверный формат: латиница, цифры, _ и – (3–24 символа)'}
+              </p>
+            )}
           </div>
 
           <button type="submit" className="btn-primary" disabled={savingProfile} style={{ padding: '11px 24px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -472,36 +528,70 @@ export default function DashboardPage({
               />
             </div>
             <div>
-              <label htmlFor="ap-effect" style={labelStyle}>Эффекты фона</label>
-              <select
-                id="ap-effect"
-                className="field-input"
-                value={appearance.bg_effect}
-                onChange={(e) => setAppearance((d) => ({ ...d, bg_effect: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>Эффекты фона (живые примеры)</label>
+              <div
+                role="radiogroup"
+                aria-label="Эффекты фона"
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}
               >
-                <option value="none">Нет</option>
-                <option value="aurora">Aurora</option>
-                <option value="snow">Снежинки</option>
-                <option value="rain">Дождь</option>
-                <option value="night">Ночь</option>
-                <option value="stars">Звёзды</option>
-              </select>
+                {BG_PRESETS.map((preset) => {
+                  const active = appearance.bg_effect === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`fx-tile${active ? ' active' : ''}`}
+                      onClick={() => setAppearance((d) => ({ ...d, bg_effect: preset.value }))}
+                      style={{ padding: 0 }}
+                    >
+                      <div className="fx-canvas-wrap">
+                        {preset.value !== 'none' && (
+                          <ProfileFX kind={preset.value as ProfileEffect} preview />
+                        )}
+                        {preset.value === 'none' && (
+                          <span className="fx-none-icon">⃠</span>
+                        )}
+                      </div>
+                      <div className="fx-label">{preset.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
-              <label htmlFor="ap-namefx" style={labelStyle}>Эффект ника</label>
-              <select
-                id="ap-namefx"
-                className="field-input"
-                value={appearance.name_effect}
-                onChange={(e) => setAppearance((d) => ({ ...d, name_effect: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>Эффект ника (превью на «ffazak»)</label>
+              <div
+                role="radiogroup"
+                aria-label="Эффект ника"
+                style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}
               >
-                <option value="none">Нет</option>
-                <option value="rainbow">Радуга</option>
-                <option value="glow">Свечение</option>
-                <option value="glitch">Глитч</option>
-              </select>
+                {NAME_PRESETS.map((preset) => {
+                  const active = appearance.name_effect === preset.value;
+                  return (
+                    <button
+                      type="button"
+                      key={preset.value}
+                      role="radio"
+                      aria-checked={active}
+                      className={`fx-tile${active ? ' active' : ''}`}
+                      onClick={() => setAppearance((d) => ({ ...d, name_effect: preset.value }))}
+                      style={{ padding: 0 }}
+                    >
+                      <div className="fx-name-wrap">
+                        <span
+                          className={`name-preview${preset.cls ? ' ' + preset.cls : ''}`}
+                          data-name="ffazak"
+                        >
+                          ffazak
+                        </span>
+                      </div>
+                      <div className="fx-label">{preset.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label htmlFor="ap-location" style={labelStyle}>Местоположение</label>
