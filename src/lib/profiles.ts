@@ -21,6 +21,7 @@ export interface Profile {
   icons_color: string;
   fx_color: string; // цвет частиц: снег / дождь / конфетти / светлячки / пузыри
   name_effect: string; // none | rainbow | glow | glitch | fire | ice | gold | neon | shine | bounce
+  verified: boolean; // чёрно-белая галочка у ника
 }
 
 export type ProfileDraft = Pick<Profile, 'username' | 'display_name'>;
@@ -40,6 +41,7 @@ export type AppearanceDraft = {
   bg_color: string;
   icons_color: string;
   fx_color: string;
+  verified: boolean;
   name_effect: string;
 };
 
@@ -58,6 +60,7 @@ export const APPEARANCE_FALLBACK: AppearanceDraft = {
   bg_color: '#080c14',
   icons_color: '#4f9eff',
   fx_color: '#ffffff',
+  verified: false,
   name_effect: 'none',
 };
 
@@ -84,6 +87,7 @@ export function appearanceFrom(profile: Profile | null): AppearanceDraft {
     bg_color: colorOr(profile.bg_color ?? '', APPEARANCE_FALLBACK.bg_color),
     icons_color: colorOr(profile.icons_color ?? '', APPEARANCE_FALLBACK.icons_color),
     fx_color: colorOr(profile.fx_color ?? '', APPEARANCE_FALLBACK.fx_color),
+    verified: !!profile.verified,
     name_effect: profile.name_effect ?? 'none',
   };
 }
@@ -153,6 +157,7 @@ export async function updateOwnAppearance(draft: AppearanceDraft): Promise<{ ok:
     bg_color: colorOr(draft.bg_color, APPEARANCE_FALLBACK.bg_color),
     icons_color: colorOr(draft.icons_color, APPEARANCE_FALLBACK.icons_color),
     fx_color: colorOr(draft.fx_color, APPEARANCE_FALLBACK.fx_color),
+    verified: !!draft.verified,
     name_effect: ['none', 'rainbow', 'glow', 'glitch', 'fire', 'ice', 'gold', 'neon', 'shine', 'bounce'].includes(draft.name_effect) ? draft.name_effect : 'none',
   };
 

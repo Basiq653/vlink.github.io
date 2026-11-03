@@ -245,6 +245,22 @@ export default function ProfilePage() {
             className={nameEffectClass}
           >
             {displayName}
+            {profile.verified && (
+              <span
+                className="verified-badge"
+                role="img"
+                aria-label="Верифицированный профиль"
+                title="Верифицированный профиль"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <circle cx="12" cy="12" r="12" fill="#ffffff" />
+                  <path
+                    d="M10.35 16.05 6.6 12.3l1.75-1.75 2 2 5.3-5.3 1.75 1.75-7.05 7.05Z"
+                    fill="#060a14"
+                  />
+                </svg>
+              </span>
+            )}
           </h1>
           <p style={{ color: ap.accent_color, fontSize: '0.95rem', fontWeight: 500, marginBottom: ap.description ? 14 : 24 }}>
             @{profile.username}

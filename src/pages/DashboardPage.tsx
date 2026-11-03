@@ -618,6 +618,15 @@ export default function DashboardPage({
                   );
                 })}
               </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)' }}>
+                <input
+                  type="checkbox"
+                  checked={appearance.verified}
+                  onChange={(e) => setAppearance((d) => ({ ...d, verified: e.target.checked }))}
+                  style={{ width: 16, height: 16, accentColor: 'var(--blue)', cursor: 'pointer' }}
+                />
+                Чёрно-белая галочка у ника (верификация)
+              </label>
             </div>
             <div>
               <label htmlFor="ap-location" style={labelStyle}>Местоположение</label>

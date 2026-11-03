@@ -799,6 +799,21 @@ select.field-input option:hover {
   color: var(--muted);
 }
 
+/* чёрно-белая галочка у ника */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  vertical-align: middle;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+
+.verified-badge svg {
+  display: block;
+}
+
 .username-status.ok {
   color: #47e891;
 }
