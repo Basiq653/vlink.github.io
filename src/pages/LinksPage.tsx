@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useReveal } from '../lib/useReveal';
 import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
+import IconGlyph from '../components/IconGlyph';
 import { fetchProfileById } from '../lib/profiles';
 import type { AuthMode } from '../types';
 
@@ -244,11 +245,10 @@ export default function LinksPage({ onAuthOpen }: { onAuthOpen: (mode: AuthMode)
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.4rem',
                       flexShrink: 0,
                     }}
                   >
-                    {entry.card.icon}
+                    <IconGlyph value={entry.card.icon} size={22} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>

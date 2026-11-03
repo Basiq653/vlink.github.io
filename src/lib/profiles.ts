@@ -19,7 +19,7 @@ export interface Profile {
   text_color: string;
   bg_color: string;
   icons_color: string;
-  name_effect: string; // none | rainbow | glow | glitch
+  name_effect: string; // none | rainbow | glow | glitch | fire | ice | gold | neon | shine | bounce
 }
 
 export type ProfileDraft = Pick<Profile, 'username' | 'display_name'>;
@@ -148,7 +148,7 @@ export async function updateOwnAppearance(draft: AppearanceDraft): Promise<{ ok:
     text_color: colorOr(draft.text_color, APPEARANCE_FALLBACK.text_color),
     bg_color: colorOr(draft.bg_color, APPEARANCE_FALLBACK.bg_color),
     icons_color: colorOr(draft.icons_color, APPEARANCE_FALLBACK.icons_color),
-    name_effect: ['none', 'rainbow', 'glow', 'glitch'].includes(draft.name_effect) ? draft.name_effect : 'none',
+    name_effect: ['none', 'rainbow', 'glow', 'glitch', 'fire', 'ice', 'gold', 'neon', 'shine', 'bounce'].includes(draft.name_effect) ? draft.name_effect : 'none',
   };
 
   const { error } = await supabase.from('profiles').update(payload).eq('id', auth.user.id);

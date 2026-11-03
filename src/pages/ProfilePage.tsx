@@ -6,6 +6,7 @@ import { fetchLinkCards, type LinkCard } from '../lib/linkCards';
 import { useReveal } from '../lib/useReveal';
 import { supabase } from '../lib/supabase';
 import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
+import IconGlyph from '../components/IconGlyph';
 
 export default function ProfilePage() {
   const { username = '' } = useParams();
@@ -136,11 +137,9 @@ export default function ProfilePage() {
   };
   const displayName = profile.display_name || profile.username;
   const hasBg = !!ap.background_url;
+  // все эффекты ника: css-класс совпадает с ключом эффекта
   const nameEffectClass =
-    ap.name_effect === 'rainbow' ? 'name-rainbow'
-    : ap.name_effect === 'glow' ? 'name-glow'
-    : ap.name_effect === 'glitch' ? 'name-glitch'
-    : '';
+    ap.name_effect && ap.name_effect !== 'none' ? `name-${ap.name_effect}` : '';
   // карточка контента: полупрозрачное стекло поверх фона
   const glassAlpha = hasBg ? Math.max(0.3, (100 - ap.bg_opacity + 40) / 155) : 0.6;
   const contentBg = `rgba(12, 17, 28, ${glassAlpha.toFixed(2)})`;
@@ -302,7 +301,12 @@ export default function ProfilePage() {
                     transition: 'transform 0.15s ease, background 0.15s ease',
                   }}
                 >
-                  <span aria-hidden="true" style={{ fontSize: '1.5rem', flexShrink: 0 }}>{card.icon}</span>
+                  <span
+                    aria-hidden="true"
+                    style={{ flexShrink: 0, position: 'relative', zIndex: 1, display: 'flex' }}
+                  >
+                    <IconGlyph value={card.icon} size={24} color={ap.icons_color} />
+                  </span>
                   <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     <span style={{ display: 'block', fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '0.95rem', color: ap.text_color }}>
                       {card.title}

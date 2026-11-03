@@ -8,6 +8,7 @@ import type { AuthMode } from '../types';
 import { fetchProfileById, fetchProfileByUsername, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
 import { uploadMedia, type MediaKind } from '../lib/storage';
 import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
+import IconGlyph, { BRAND_ICONS, ICON_KEYS, isBrandIcon } from '../components/IconGlyph';
 import {
   CARD_CATEGORIES,
   createLinkCard,
@@ -34,6 +35,12 @@ const NAME_PRESETS: Array<{ value: string; label: string; cls: string }> = [
   { value: 'rainbow', label: 'Радуга', cls: 'name-rainbow' },
   { value: 'glow', label: 'Свечение', cls: 'name-glow' },
   { value: 'glitch', label: 'Глитч', cls: 'name-glitch' },
+  { value: 'fire', label: 'Огонь', cls: 'name-fire' },
+  { value: 'ice', label: 'Лёд', cls: 'name-ice' },
+  { value: 'gold', label: 'Золото', cls: 'name-gold' },
+  { value: 'neon', label: 'Неон', cls: 'name-neon' },
+  { value: 'shine', label: 'Блеск', cls: 'name-shine' },
+  { value: 'bounce', label: 'Прыжок', cls: 'name-bounce' },
 ];
 
 const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: 8, color: 'var(--text)' } as const;
@@ -60,6 +67,7 @@ export default function DashboardPage({
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<LinkCardDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -700,15 +708,55 @@ export default function DashboardPage({
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label htmlFor="card-icon" style={labelStyle}>Иконка</label>
+              <label style={labelStyle}>Иконка</label>
+              <button
+                type="button"
+                className="icon-picker-toggle"
+                onClick={() => setIconPickerOpen((v) => !v)}
+                aria-expanded={iconPickerOpen}
+                aria-label="Выбрать иконку"
+                style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 10, width: '100%', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <IconGlyph value={draft.icon} size={20} />
+                <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                  {draft.icon
+                    ? isBrandIcon(draft.icon) ? BRAND_ICONS[draft.icon].label : 'Своё эмодзи или символ'
+                    : 'Выберите иконку'}
+                </span>
+                <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>{iconPickerOpen ? '▲' : '▼'}</span>
+              </button>
+              {iconPickerOpen && (
+                <div className="icon-picker" role="listbox" aria-label="Популярные сервисы">
+                  {ICON_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="option"
+                      aria-selected={draft.icon === key}
+                      title={BRAND_ICONS[key].label}
+                      className={`icon-pick${draft.icon === key ? ' active' : ''}`}
+                      onClick={() => {
+                        setDraft((d) => ({ ...d, icon: key }));
+                        setIconPickerOpen(false);
+                      }}
+                    >
+                      <IconGlyph value={key} size={18} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label htmlFor="card-emoji" style={labelStyle}>…или своя эмодзи</label>
               <input
-                id="card-icon"
+                id="card-emoji"
                 className="field-input"
                 type="text"
-                value={draft.icon}
+                value={isBrandIcon(draft.icon) ? '' : draft.icon}
                 onChange={(e) => setDraft((d) => ({ ...d, icon: e.target.value.slice(0, 2) }))}
+                placeholder="🔗"
                 maxLength={2}
                 aria-label="Эмодзи иконка"
                 style={inputStyle}
@@ -727,7 +775,7 @@ export default function DashboardPage({
                 style={inputStyle}
               />
             </div>
-            <div style={{ gridColumn: '2' }}>
+            <div>
               <label htmlFor="card-url" style={labelStyle}>Ссылка</label>
               <input
                 id="card-url"
@@ -799,9 +847,9 @@ export default function DashboardPage({
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                   <div
                     aria-hidden="true"
-                    style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(79, 158, 255, 0.1)', border: '1px solid rgba(79, 158, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}
+                    style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(79, 158, 255, 0.1)', border: '1px solid rgba(79, 158, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                   >
-                    {card.icon}
+                    <IconGlyph value={card.icon} size={22} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
