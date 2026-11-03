@@ -5,7 +5,7 @@ import { useReveal } from '../lib/useReveal';
 import { supabase } from '../lib/supabase';
 import type { SessionUser } from '../lib/supabase';
 import type { AuthMode } from '../types';
-import { fetchProfileById, fetchProfileByUsername, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
+import { fetchProfileById, fetchProfileByUsername, updateOwnProfile, updateOwnAppearance, appearanceFrom, APPEARANCE_FALLBACK, ADMIN_UID, type Profile, type ProfileDraft, type AppearanceDraft } from '../lib/profiles';
 import { uploadMedia, type MediaKind } from '../lib/storage';
 import ProfileFX, { type ProfileEffect } from '../components/ProfileFX';
 import IconGlyph, { BRAND_ICONS, ICON_KEYS, isBrandIcon } from '../components/IconGlyph';
@@ -618,15 +618,17 @@ export default function DashboardPage({
                   );
                 })}
               </div>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)' }}>
-                <input
-                  type="checkbox"
-                  checked={appearance.verified}
-                  onChange={(e) => setAppearance((d) => ({ ...d, verified: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: 'var(--blue)', cursor: 'pointer' }}
-                />
-                Чёрно-белая галочка у ника (верификация)
-              </label>
+              {userId === ADMIN_UID && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)' }}>
+                  <input
+                    type="checkbox"
+                    checked={appearance.verified}
+                    onChange={(e) => setAppearance((d) => ({ ...d, verified: e.target.checked }))}
+                    style={{ width: 16, height: 16, accentColor: 'var(--blue)', cursor: 'pointer' }}
+                  />
+                  Чёрно-белая галочка у ника (верификация)
+                </label>
+              )}
             </div>
             <div>
               <label htmlFor="ap-location" style={labelStyle}>Местоположение</label>

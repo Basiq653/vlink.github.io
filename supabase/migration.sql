@@ -217,3 +217,27 @@ alter table public.profiles add column if not exists fx_color text not null defa
 -- =========================================================
 alter table public.profiles add column if not exists verified boolean not null default false;
 
+-- =========================================================
+-- 9. VERIFIED — только владельцу сайта. Обычные пользователи
+--    не могут поставить/снять галочку: триггер молча откатывает
+--    их попытку (используется свойство security definer).
+-- WARNING: менеджмент аккаунта владельца жёстко задан здесь.
+-- =========================================================
+create or replace function public.enforce_verified_owner()
+returns trigger
+language plpgsql
+as $$
+begin
+  if (new.verified is distinct from old.verified)
+     and coalesce(auth.uid()::text, '') <> '0a237941-1d1c-4dfe-a156-9616e212e8b5' then
+    new.verified := old.verified; -- вернуться к прежнему состоянию
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_verified_owner on public.profiles;
+create trigger enforce_verified_owner
+  before update on public.profiles
+  for each row execute function public.enforce_verified_owner();
+

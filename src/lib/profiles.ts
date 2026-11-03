@@ -64,8 +64,10 @@ export const APPEARANCE_FALLBACK: AppearanceDraft = {
   name_effect: 'none',
 };
 
-const HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
+/** Владелец сайта — единственный, кто может ставить галочку верификации (закреплено триггером в БД). */
+export const ADMIN_UID = '0a237941-1d1c-4dfe-a156-9616e212e8b5';
 
+const HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
 function colorOr(value: string, fallback: string): string {
   return HEX_RE.test(value) ? value : fallback;
 }
