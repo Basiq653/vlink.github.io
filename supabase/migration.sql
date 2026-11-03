@@ -1,9 +1,9 @@
-﻿-- Vlink: РїРѕР»РЅР°СЏ РјРёРіСЂР°С†РёСЏ Р±Р°Р·С‹ (profiles + link_cards)
--- Р’С‹РїРѕР»РЅРёС‚Рµ РІ Supabase Dashboard в†’ SQL Editor в†’ New query в†’ Run
--- (Р±РµР·РѕРїР°СЃРЅРѕ Р·Р°РїСѓСЃРєР°С‚СЊ РїРѕРІС‚РѕСЂРЅРѕ)
+-- Vlink: полная миграция базы (profiles + link_cards)
+-- Выполните в Supabase Dashboard → SQL Editor → New query → Run
+-- (безопасно запускать повторно)
 
 -- ============================================================
--- 1. РџР РћР¤РР›Р РџРћР›Р¬Р—РћР’РђРўР•Р›Р•Р™ (username, РёРјСЏ, Р°РІР°С‚Р°СЂ)
+-- 1. ПРОФИЛИ ПОЛЬЗОВАТЕЛЕЙ (username, имя, аватар)
 -- ============================================================
 
 create table if not exists public.profiles (
@@ -15,7 +15,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
--- РїСЂРѕС„РёР»СЊ РїСѓР±Р»РёС‡РЅС‹Р№: Р»СЋР±РѕР№ РІРёРґРёС‚ РёРјРµРЅР° Рё Р°РґСЂРµСЃР° СЃС‚СЂР°РЅРёС† /u/<username>
+-- профиль публичный: любой видит имена и адреса страниц /u/<username>
 drop policy if exists "Anyone can read profiles" on public.profiles;
 create policy "Anyone can read profiles"
   on public.profiles
@@ -35,8 +35,8 @@ create policy "Users can update own profile"
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
--- РђРІС‚РѕРїСЂРѕС„РёР»СЊ РїСЂРё СЂРµРіРёСЃС‚СЂР°С†РёРё: username = РёРјСЏ РёР· user_metadata ( sanitized ),
--- РїСЂРё РєРѕР»Р»РёР·РёРё РґРѕР±Р°РІР»СЏРµС‚СЃСЏ СЃСѓС„С„РёРєСЃ
+-- Автопрофиль при регистрации: username = имя из user_metadata ( sanitized ),
+-- при коллизии добавляется суффикс
 create or replace function public.handle_new_user()
 returns trigger
 security definer
@@ -68,13 +68,13 @@ begin
 end;
 $$;
 
--- С‚СЂРёРіРіРµСЂ СЃСЂР°Р±РѕС‚Р°РµС‚ РґР»СЏ РІСЃРµС… Р±СѓРґСѓС‰РёС… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№
+-- триггер сработает для всех будущих пользователей
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- РџСЂРѕС„РёР»СЊ СЃРѕР·РґР°СЃС‚СЃСЏ Рё РґР»СЏ С‚РµС…, РєС‚Рѕ СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ:
+-- Профиль создастся и для тех, кто уже зарегистрирован:
 insert into public.profiles (id, username, display_name)
 select
   u.id,
@@ -85,7 +85,7 @@ where not exists (select 1 from public.profiles p where p.id = u.id)
 on conflict (id) do nothing;
 
 -- ============================================================
--- 2. РљРђР РўРћР§РљР РЎРЎР«Р›РћРљ
+-- 2. КАРТОЧКИ ССЫЛОК
 -- ============================================================
 
 create table if not exists public.link_cards (
@@ -94,7 +94,7 @@ create table if not exists public.link_cards (
   title text not null,
   description text not null default '',
   category text not null default 'Other',
-  icon text not null default 'рџ”—',
+  icon text not null default '🔗',
   url text not null,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
@@ -102,14 +102,14 @@ create table if not exists public.link_cards (
 
 alter table public.link_cards enable row level security;
 
--- С‡РёС‚Р°С‚СЊ РєР°С‚Р°Р»РѕРі РјРѕРіСѓС‚ РІСЃРµ (РїСѓР±Р»РёС‡РЅС‹Рµ СЃС‚СЂР°РЅРёС†С‹ /u/<username> Рё СЂР°Р·РґРµР» В«РЎСЃС‹Р»РєРёВ»)
+-- читать каталог могут все (публичные страницы /u/<username> и раздел «Ссылки»)
 drop policy if exists "Anyone can read link cards" on public.link_cards;
 create policy "Anyone can read link cards"
   on public.link_cards
   for select
   using (true);
 
--- СЃРѕР·РґР°РІР°С‚СЊ/СЂРµРґР°РєС‚РёСЂРѕРІР°С‚СЊ/СѓРґР°Р»СЏС‚СЊ РјРѕР¶РЅРѕ С‚РѕР»СЊРєРѕ СЃРІРѕРё РєР°СЂС‚РѕС‡РєРё
+-- создавать/редактировать/удалять можно только свои карточки
 drop policy if exists "Users can insert own cards" on public.link_cards;
 create policy "Users can insert own cards"
   on public.link_cards
@@ -129,15 +129,15 @@ create policy "Users can delete own cards"
   for delete
   using (auth.uid() = user_id);
 
--- Р±С‹СЃС‚СЂС‹Р№ РёРЅРґРµРєСЃ РґР»СЏ РїСЂРѕС„РёР»РµР№
+-- быстрый индекс для профилей
 create index if not exists link_cards_user_id_idx on public.link_cards (user_id);
 -- ============================================================
--- 3. Р’РќР•РЁРќРР™ Р’РР” РџР РћР¤РР›РЇ (РІ СЃС‚РёР»Рµ guns.lol) + STORAGE
--- Р”РѕР±Р°РІСЊС‚Рµ СЌС‚РѕС‚ Р±Р»РѕРє Р’ РљРћРќР•Р¦ supabase/migration.sql
--- (РёР»Рё Р·Р°РїСѓСЃС‚РёС‚Рµ РѕС‚РґРµР»СЊРЅРѕ вЂ” Р±РµР·РѕРїР°СЃРЅРѕ РїРѕРІС‚РѕСЂСЏС‚СЊ)
+-- 3. ВНЕШНИЙ ВИД ПРОФИЛЯ (в стиле guns.lol) + STORAGE
+-- Добавьте этот блок В КОНЕЦ supabase/migration.sql
+-- (или запустите отдельно — безопасно повторять)
 -- ============================================================
 
--- РќРѕРІС‹Рµ РєРѕР»РѕРЅРєРё РїСЂРѕС„РёР»СЏ
+-- Новые колонки профиля
 alter table public.profiles
   add column if not exists description  text not null default '',
   add column if not exists avatar_url   text not null default '',
@@ -154,21 +154,21 @@ alter table public.profiles
   add column if not exists icons_color  text not null default '#4f9eff';
 
 -- ============================================================
--- STORAGE: РїСѓР±Р»РёС‡РЅС‹Р№ Р±Р°РєРµС‚ media (С„РѕРЅ, Р°РІР°С‚Р°СЂ, Р°СѓРґРёРѕ, РєСѓСЂСЃРѕСЂ)
+-- STORAGE: публичный бакет media (фон, аватар, аудио, курсор)
 -- ============================================================
 
 insert into storage.buckets (id, name, public)
 values ('media', 'media', true)
 on conflict (id) do nothing;
 
--- С‡РёС‚Р°С‚СЊ С„Р°Р№Р»С‹ РјРѕР¶РµС‚ anyone
+-- читать файлы может anyone
 drop policy if exists "Public read media" on storage.objects;
 create policy "Public read media"
   on storage.objects
   for select
   using (bucket_id = 'media');
 
--- Р·Р°РіСЂСѓР¶Р°С‚СЊ/РѕР±РЅРѕРІР»СЏС‚СЊ/СѓРґР°Р»СЏС‚СЊ вЂ” С‚РѕР»СЊРєРѕ СЃРІРѕРё С„Р°Р№Р»С‹ (РїР°РїРєР° = СЃРІРѕР№ uid)
+-- загружать/обновлять/удалять — только свои файлы (папка = свой uid)
 drop policy if exists "Users upload own media" on storage.objects;
 create policy "Users upload own media"
   on storage.objects
@@ -197,9 +197,9 @@ create policy "Users delete own media"
   );
 
 -- ============================================================
--- 4. Р­Р¤Р¤Р•РљРў РќРРљРђ РќРђ РџРЈР‘Р›РР§РќР«РҐ РЎРўР РђРќРР¦РђРҐ
--- Р—Р°РїСѓСЃС‚РёС‚Рµ РІ Supabase SQL Editor (Р±РµР·РѕРїР°СЃРЅРѕ РїРѕРІС‚РѕСЂСЏС‚СЊ).
--- (СЌС‚РѕС‚ Р¶Рµ Р±Р»РѕРє СѓР¶Рµ РґРѕР±Р°РІР»РµРЅ РІ РєРѕРЅРµС† migration.sql)
+-- 4. ЭФФЕКТ НИКА НА ПУБЛИЧНЫХ СТРАНИЦАХ
+-- Запустите в Supabase SQL Editor (безопасно повторять).
+-- (этот же блок уже добавлен в конец migration.sql)
 -- ============================================================
 
 alter table public.profiles
