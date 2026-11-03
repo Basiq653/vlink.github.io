@@ -133,6 +133,7 @@ export default function ProfilePage() {
     text_color: profile.text_color || APPEARANCE_FALLBACK.text_color,
     bg_color: profile.bg_color || APPEARANCE_FALLBACK.bg_color,
     icons_color: profile.icons_color || APPEARANCE_FALLBACK.icons_color,
+    fx_color: profile.fx_color || APPEARANCE_FALLBACK.fx_color,
     name_effect: profile.name_effect || 'none',
   };
   const displayName = profile.display_name || profile.username;
@@ -156,15 +157,15 @@ export default function ProfilePage() {
             backgroundImage: `url(${ap.background_url})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: `blur(${ap.bg_blur}px)`,
+            filter: ap.bg_blur > 0 ? `blur(${ap.bg_blur}px)` : undefined,
             transform: ap.bg_blur > 0 ? 'scale(1.05)' : undefined,
             zIndex: -2,
           }}
         />
       )}
 
-      {/* эффекты */}
-      <ProfileFX kind={ap.bg_effect} color={ap.accent_color} />
+      {/* эффекты; цвет частиц — отдельная настройка */}
+      <ProfileFX kind={ap.bg_effect} color={ap.fx_color} />
 
       {/* hero + карточки */}
       <div

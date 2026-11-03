@@ -28,6 +28,9 @@ const BG_PRESETS: Array<{ value: string; label: string }> = [
   { value: 'snow', label: 'Снежинки' },
   { value: 'night', label: 'Ночь' },
   { value: 'stars', label: 'Звёзды' },
+  { value: 'confetti', label: 'Конфетти' },
+  { value: 'fireflies', label: 'Светлячки' },
+  { value: 'bubbles', label: 'Пузыри' },
 ];
 
 const NAME_PRESETS: Array<{ value: string; label: string; cls: string }> = [
@@ -567,6 +570,21 @@ export default function DashboardPage({
                   );
                 })}
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                <label htmlFor="ap-fx-color" style={{ fontSize: '0.85rem', color: 'var(--text)' }}>
+                  Цвет частиц
+                </label>
+                <input
+                  id="ap-fx-color"
+                  type="color"
+                  value={appearance.fx_color}
+                  onChange={(e) => setAppearance((d) => ({ ...d, fx_color: e.target.value }))}
+                  style={{ width: 42, height: 30, padding: 0, border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, background: 'transparent', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  работает для: снег, дождь, конфетти, светлячки, пузыри, звёзды
+                </span>
+              </div>
             </div>
             <div>
               <label style={labelStyle}>Эффект ника (превью на «ffazak»)</label>
@@ -629,6 +647,9 @@ export default function DashboardPage({
             </div>
             <div>
               <label htmlFor="ap-blur" style={labelStyle}>Размытие фона — {appearance.bg_blur}px</label>
+              <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: 6 }}>
+                Художественное размытие картинки. Для максимальной чёткости фона поставьте 0.
+              </span>
               <input
                 id="ap-blur"
                 type="range"

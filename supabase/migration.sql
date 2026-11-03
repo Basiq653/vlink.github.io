@@ -205,3 +205,9 @@ create policy "Users delete own media"
 alter table public.profiles
   add column if not exists name_effect text not null default 'none'; -- none | rainbow | glow | glitch
 
+
+-- =========================================================
+-- 7. FX_COLOR — цвет частиц эффектов (снег / дождь / конфетти /
+--    светлячки / пузыри). Раздел идемпотентный, запуск повторно безопасен.
+-- =========================================================
+alter table public.profiles add column if not exists fx_color text not null default '#ffffff';
