@@ -2,20 +2,20 @@ import { useEffect, useState } from 'react';
 import GradientLoader from './GradientLoader';
 
 /**
- * Animated intro screen. Shows briefly, then fades out and reports
- * completion. Reduced-motion users and repeat session visitors see a
- * much shorter flash instead of a fixed 2.5 second wait.
+ * Стартовая заставка в стиле liquid glass: стеклянная плитка с логотипом V,
+ * живое свечение позади, слово VLINK с пробегающим светом и заполняющийся
+ * прогресс. Повторным посетителям сессии и reduced-motion — короткая вспышка.
  */
 export default function BootScreen({ onComplete }: { onComplete: () => void }) {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const visibleMs = reduced ? 300 : 1500;
+    const visibleMs = reduced ? 350 : 1700;
     let fadeTimer: number;
     const doneTimer = window.setTimeout(() => {
       setFading(true);
-      fadeTimer = window.setTimeout(onComplete, 450);
+      fadeTimer = window.setTimeout(onComplete, 520);
     }, visibleMs);
     return () => {
       window.clearTimeout(doneTimer);
@@ -27,50 +27,34 @@ export default function BootScreen({ onComplete }: { onComplete: () => void }) {
     <div
       aria-label="Загрузка"
       role="status"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: '#060a14',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 99999,
-        transition: 'opacity 0.45s ease',
-        opacity: fading ? 0 : 1,
-        pointerEvents: fading ? 'none' : 'auto',
-      }}
+      className={`boot-screen boot-aura${fading ? ' done' : ''}`}
     >
-      <div
-        style={{
-          fontSize: '4rem',
-          fontWeight: 800,
-          letterSpacing: '0.2em',
-          fontFamily: 'var(--font-head)',
-          background: 'var(--gradient-brand)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          marginBottom: 28,
-        }}
-      >
+      {/* стеклянная плитка с логотипом и живым свечением */}
+      <div className="boot-tile">
+        <GradientLoader size={160} />
+        <svg className="boot-v" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="bootVGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#4f9eff" />
+              <stop offset="1" stopColor="#b06ef7" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M40.5 22v10.8c0 6-4.1 9.8-10.3 9.8s-10.3-3.8-10.3-9.8V22h4.6V32c0 3 1.8 4.9 4.6 4.9 2.8 0 4.6-1.9 4.6-4.9V22h4.8l6.4-4z"
+            fill="url(#bootVGrad)"
+            stroke="url(#bootVGrad)"
+          />
+        </svg>
+      </div>
+
+      {/* слово-логотип */}
+      <div className="boot-word" data-word="VLINK">
         VLINK
       </div>
-      <GradientLoader size={110} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: 'var(--gradient-brand)',
-              animation: 'bootDotPulse 1.2s ease infinite',
-              animationDelay: `${i * 0.2}s`,
-            }}
-          />
-        ))}
+
+      {/* прогресс */}
+      <div className="boot-bar" aria-hidden="true">
+        <i />
       </div>
     </div>
   );
